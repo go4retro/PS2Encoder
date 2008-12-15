@@ -18,28 +18,35 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include <inttypes.h>
-#include "util.h"
+#include <avr/io.h>
+#include "config.h"
+#include "avrcompat.h"
 #include "ps2.h"
+#include "ps2_lib.h"
 #include "ps2_host.h"
 
-void PS2_host_init(void) {
+void ps2_host_init(uint8_t mode) {
+  ps2_lib_init();
+
   PS2_enable_IRQ_CLK_Fall();
 }
+void ps2_init(uint8_t mode) __attribute__ ((weak, alias("ps2_host_init")));
 
-void PS2_host_trigger_send(void) {
+void ps2_host_trigger_send(void) {
   //debug2('t');
   // need to get devices attention...
   PS2_set_state(PS2_ST_PREP_START);
   PS2_disable_IRQ_CLK();
   PS2_clear_CLK();
   // yes, bring CLK lo for 100uS
-  PS2_enable_IRQ_timer0(100);
+  ps2_timer_irq_set(100);
 }
+void ps2_trigger_send(void) __attribute__ ((weak, alias("ps2_host_trigger_send")));
 
-inline void PS2_host_check_for_data(void) {
+static void PS2_host_check_for_data(void) {
     if(PS2_data_to_send() != 0) {
       //debug2('d');
-      PS2_host_trigger_send();
+      ps2_host_trigger_send();
     } else {
       //debug2('n');
       // wait for something to receive
@@ -48,7 +55,7 @@ inline void PS2_host_check_for_data(void) {
     }
 }
 
-inline void PS2_host_CLK() {
+void ps2_host_clk_irq(void) {
   switch(PS2_get_state()) {
     case PS2_ST_WAIT_RESPONSE:
     case PS2_ST_IDLE:
@@ -56,12 +63,12 @@ inline void PS2_host_CLK() {
       // should read it, but will assume it is good.
       PS2_set_state(PS2_ST_GET_BIT);
       // if we don't get another CLK in 100uS, timeout.
-      PS2_enable_IRQ_timer0(100);
+      ps2_timer_irq_set(100);
       PS2_clear_counters();
       break;
     case PS2_ST_GET_BIT:
       // if we don't get another CLK in 100uS, timeout.
-      PS2_enable_IRQ_timer0(100);
+      ps2_timer_irq_set(100);
       // read bit;
       PS2_read_bit();
       if(PS2_get_count() == 8) {
@@ -71,13 +78,13 @@ inline void PS2_host_CLK() {
       break;
     case PS2_ST_GET_PARITY:
       // if we don't get another CLK in 100uS, timeout.
-      PS2_enable_IRQ_timer0(100);
+      ps2_timer_irq_set(100);
       // grab parity
       // for now, assume it is OK.
       PS2_set_state(PS2_ST_GET_STOP);
       break;
     case PS2_ST_GET_STOP:
-      PS2_disable_IRQ_timer0();
+      ps2_timer_irq_off();
       // stop bit
       // for now, assume it is OK.
       PS2_write_byte();
@@ -124,14 +131,15 @@ inline void PS2_host_CLK() {
       }
       break;
     default:
-      debug('&');
-      debug('a' + PS2_get_state());
+      //debug('&');
+      //debug('a' + PS2_get_state());
       break;
   }
 }
+void ps2_clk_irq(void) __attribute__ ((weak, alias("ps2_host_clk_irq")));
 
-void PS2_host_Timer() {
-  PS2_disable_IRQ_timer0();
+void ps2_host_timer_irq() {
+  ps2_timer_irq_off();
   switch (PS2_get_state()) {
     case PS2_ST_GET_BIT:
     case PS2_ST_GET_PARITY:
@@ -145,7 +153,8 @@ void PS2_host_Timer() {
       //debug2('p');
       // we waited 100uS for device to notice us, bring DATA low and CLK hi
       PS2_clear_DATA();
-      if(!PS2_set_CLK()) {
+      PS2_set_CLK();
+      if(!PS2_read_CLK()) {
         //debug2(':');
         // kb wants to talk to us.
         PS2_set_DATA();
@@ -161,8 +170,9 @@ void PS2_host_Timer() {
       }
       break;
     default:
-      debug('#');
-      debug('a' + PS2_get_state());
+      //debug('#');
+      //debug('a' + PS2_get_state());
       break;
   }
 }
+void ps2_timer_irq(void) __attribute__ ((weak, alias("ps2_host_timer_irq")));

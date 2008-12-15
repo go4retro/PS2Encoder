@@ -20,10 +20,9 @@
 #ifndef PS2_HOST_H
 #define PS2_HOST_H 1
 
-void PS2_host_init(void);
-void PS2_host_trigger_send(void);
-void PS2_host_CLK(void);
-void PS2_host_DATA(void);
-void PS2_host_Timer(void);
+void ps2_host_init(uint8_t mode);
+void ps2_host_trigger_send(void);
+void ps2_host_clk_irq(void);
+void ps2_host_timer_irq(void);
 
 #endif

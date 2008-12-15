@@ -22,92 +22,29 @@
 
 #include <inttypes.h>
 #include <avr/io.h>
-#include <avr/signal.h>
 #include <avr/interrupt.h>
-#include "usart.h"
-#include "util.h"
+#include "config.h"
+#include "avrcompat.h"
 #include "ps2.h"
-#include "ps2_device.h"
-#include "ps2_host.h"
+#include "ps2_lib.h"
+#include "uart.h"
 
-static unsigned char PS2_RxBuf[PS2_RX_BUFFER_SIZE];
-static volatile uint8_t PS2_RxHead;
-static volatile uint8_t PS2_RxTail;
-static unsigned char PS2_TxBuf[PS2_TX_BUFFER_SIZE];
-static volatile uint8_t PS2_TxHead;
-static volatile uint8_t PS2_TxTail;
+static unsigned char rxbuf[1 << PS2_RX_BUFFER_SHIFT];
+static volatile uint8_t rx_head;
+static volatile uint8_t rx_tail;
+static unsigned char txbuf[1 << PS2_TX_BUFFER_SHIFT];
+static volatile uint8_t tx_head;
+static volatile uint8_t tx_tail;
 
 static volatile uint8_t PS2_State;
 static volatile uint8_t PS2_Byte;
 static volatile uint8_t PS2_Bit_Count;
 static volatile uint8_t PS2_One_Count;
 
-static volatile uint8_t PS2_Mode;
 static volatile uint8_t PS2_LEDs;
 static volatile uint8_t PS2_CodeSet;
 
-void PS2_clear_buffers(void) {
-  PS2_TxHead=0;
-  PS2_TxTail=0;
-  PS2_RxHead=0;
-  PS2_RxTail=0;
-}
-
-void PS2_init(uint8_t mode) {
-  PS2_clear_buffers();
-  PS2_Mode=mode;
-  PS2_LEDs=0;
-  PS2_CodeSet=2;
-  
-	PS2_set_CLK();
-	PS2_set_DATA();
-  
-  PS2_State=PS2_ST_IDLE;
-  if(PS2_Mode==PS2_MODE_DEVICE) {
-    PS2_device_init();
-  } else {
-    PS2_host_init();
-  }
-}
-
-inline uint8_t PS2_set_CLK() {
-	// set pin HI
-	PS2_PORT_CLK_OUT |= ( PS2_PIN_CLK);
-	// set to input (1 above brings pull up resistor online.)
-	PS2_PORT_DDR_CLK &= (uint8_t)~(PS2_PIN_CLK);
-  return PS2_read_CLK();
-}
-
-inline void PS2_clear_CLK() {
-	// set to putput
-	PS2_PORT_DDR_CLK |= (PS2_PIN_CLK);
-	// bring pin LO
-	PS2_PORT_CLK_OUT &= (uint8_t)~( PS2_PIN_CLK);
-}
-
-inline uint8_t PS2_read_CLK() {
-	return (PS2_PORT_CLK_IN & (PS2_PIN_CLK));
-}
-
-inline void PS2_set_DATA() {
-	// set pin HI
-	PS2_PORT_DATA_OUT |= ( PS2_PIN_DATA);
-	// set to input (1 above brings pull up resistor online.)
-	PS2_PORT_DDR_DATA &= (uint8_t)~(PS2_PIN_DATA);
-}
-
-inline void PS2_clear_DATA() {
-	// set to putput
-	PS2_PORT_DDR_DATA |= (PS2_PIN_DATA);
-	// bring pin LO
-	PS2_PORT_DATA_OUT &= (uint8_t)~( PS2_PIN_DATA);
-}
-
-inline uint8_t PS2_read_DATA() {
-	return (PS2_PORT_DATA_IN & (PS2_PIN_DATA));
-}
-
-inline void PS2_enable_IRQ_CLK_Rise() {
+void PS2_enable_IRQ_CLK_Rise() {
 	//GICR &= ~(1 << INT1);
 	GIFR |= (1<<INTF1);
 	// rising edge
@@ -116,7 +53,7 @@ inline void PS2_enable_IRQ_CLK_Rise() {
 	GICR |= (1 << INT1);
 }
 
-inline void PS2_enable_IRQ_CLK_Fall() {
+void PS2_enable_IRQ_CLK_Fall() {
 	//GICR &= ~(1 << INT1);
 	GIFR |= (1<<INTF1);
 	// rising edge
@@ -126,7 +63,7 @@ inline void PS2_enable_IRQ_CLK_Fall() {
 	GICR |= (1 << INT1);
 }
 
-inline void PS2_disable_IRQ_CLK() {
+void PS2_disable_IRQ_CLK() {
 	GICR &= (uint8_t)~(1 << INT1);
 }
 
@@ -144,117 +81,118 @@ void PS2_delay(uint16_t ms) {
   TCCR=0;
 }
 
-inline void PS2_enable_IRQ_timer0(uint8_t us) {
+void ps2_timer_irq_set(uint8_t us) {
 	//TCCR0 &=~(1<<CS01);
 	//TIMSK &= ~(1<<OCIE0);
 	TIFR |= TIFR_DATA;
-	// us is uS....  Need to * 14 to get ticks, then divide by 8...
-	// cheat... * 16 / 8 = *2 = <<1  
-	
 	// clear TCNT0;
 	TCNT=0;
 	// set the count...
+#if F_CPU > 14000000
+  // us is uS....  Need to * 14 to get ticks, then divide by 8...
+  // cheat... * 14 / 8 = *2 = <<1  
 	OCR=(uint8_t)(us<<1);
+#elif F_CPU > 7000000
+  OCR=us;
+#else
+  OCR=us >> 1;
+#endif
 	// set output compare IRQ
 	TIMSK |= TIMSK_DATA;
 	// set prescaler to System Clock/8 and Compare Timer
   TCCR =TCCR_DATA;
 }
 
-inline void PS2_disable_IRQ_timer0() {
+void ps2_timer_irq_off() {
 	// turn off timer
   TCCR =0;
 	TIMSK &=(uint8_t)~TIMSK_DATA;
 }
 
-inline uint8_t PS2_get_state(void) {
+uint8_t PS2_get_state(void) {
   return PS2_State;
 }
 
-inline void PS2_set_state(uint8_t state) {
+void PS2_set_state(uint8_t state) {
   PS2_State=state;
 }
 
-inline uint8_t PS2_get_count(void) {
+uint8_t PS2_get_count(void) {
   return PS2_Bit_Count;
 }
 
-uint8_t PS2_recv( void ) {
+uint8_t ps2_getc( void ) {
 	uint8_t tmptail;
 	
-	while ( PS2_RxHead == PS2_RxTail ) {
+	while ( rx_head == rx_tail ) {
     // wait for char to arrive, if none in Q
     ;
 	}
   // Calculate buffer index
-	tmptail = ( PS2_RxTail + 1 ) & PS2_RX_BUFFER_MASK;
+	tmptail = ( rx_tail + 1 ) & PS2_RX_BUFFER_MASK;
   // Store new index
-	PS2_RxTail = tmptail;
-	return PS2_RxBuf[tmptail];
+	rx_tail = tmptail;
+	return rxbuf[tmptail];
 }
 
-void PS2_send( uint8_t data ) {
+void ps2_putc( uint8_t data ) {
 	uint8_t tmphead;
 	// Calculate buffer index
-	tmphead = ( PS2_TxHead + 1 ) & PS2_TX_BUFFER_MASK; 
-	while ( tmphead == PS2_TxTail ) {
+	tmphead = ( tx_head + 1 ) & PS2_TX_BUFFER_MASK; 
+	while ( tmphead == tx_tail ) {
     // Wait for free space in buffer
     ;
   }
   
   //printHex(data);
   // Store data in buffer
-	PS2_TxBuf[tmphead] = data;
+	txbuf[tmphead] = data;
   // Store new index
-	PS2_TxHead = tmphead;
+	tx_head = tmphead;
 
   // turn off IRQs
   cli();
   if(PS2_State == PS2_ST_IDLE) {
     // start transmission;
-    if(PS2_Mode==PS2_MODE_DEVICE) {
-      PS2_device_trigger_send();
-    } else {
-      PS2_host_trigger_send();
-    }
+    ps2_trigger_send();
   }
   // turn on IRQs
   sei();
 }
 
-uint8_t PS2_data_available( void ) {
-	return ( PS2_RxHead != PS2_RxTail ); /* Return 0 (FALSE) if the receive buffer is empty */
+uint8_t ps2_data_available( void ) {
+	return ( rx_head != rx_tail ); /* Return 0 (FALSE) if the receive buffer is empty */
 }
 
 void PS2_write_byte(void) {
   uint8_t tmp;
   /* Calculate buffer index */
-  tmp = ( PS2_RxHead + 1 ) & PS2_RX_BUFFER_MASK;
-  PS2_RxHead = tmp;      /* Store new index */
+  tmp = ( rx_head + 1 ) & PS2_RX_BUFFER_MASK;
+  rx_head = tmp;      /* Store new index */
 
-  if ( tmp == PS2_RxTail ) {
+  if ( tmp == rx_tail ) {
     /* ERROR! Receive buffer overflow */
   }
 
   //debug('i');
   //printHex(PS2_Byte);
-  PS2_RxBuf[tmp] = PS2_Byte; /* Store received data in buffer */
+  rxbuf[tmp] = PS2_Byte; /* Store received data in buffer */
 }
 
 void PS2_read_byte(void) {
   PS2_Bit_Count=0;
   PS2_One_Count=0;
-  PS2_Byte = PS2_TxBuf[( PS2_TxTail + 1 ) & PS2_TX_BUFFER_MASK];  /* Start transmition */
+  PS2_Byte = txbuf[( tx_tail + 1 ) & PS2_TX_BUFFER_MASK];  /* Start transmition */
   //debug('o');
   //printHex(PS2_Byte);
 }
 
 void PS2_commit_read_byte(void) {
-  PS2_TxTail = ( PS2_TxTail + 1 ) & PS2_TX_BUFFER_MASK;      /* Store new index */
+  tx_tail = ( tx_tail + 1 ) & PS2_TX_BUFFER_MASK;      /* Store new index */
 }
 
 uint8_t PS2_data_to_send(void) {
-  return ( PS2_TxHead != PS2_TxTail );
+  return ( tx_head != tx_tail );
 }
 
 void PS2_write_bit() {
@@ -298,21 +236,21 @@ void PS2_clear_counters(void) {
   PS2_One_Count=0;
 }
 
-SIGNAL(SIG_INTERRUPT1) {
-  if(PS2_Mode==PS2_MODE_DEVICE) {
-    PS2_device_CLK();
-  } else {
-    PS2_host_CLK();
-  }
+ISR(SIG_INTERRUPT1) {
+  ps2_clk_irq();
 }
 
-SIGNAL(SIG_OUTPUT_COMPARE) {
-  if(PS2_Mode==PS2_MODE_DEVICE) {
-    PS2_device_Timer();
-  } else {
-    PS2_host_Timer();
-  }
+ISR(SIG_OUTPUT_COMPARE) {
+  ps2_timer_irq();
 }
+
+static void ps2_clear_buffers(void) {
+  tx_head=0;
+  tx_tail=0;
+  rx_head=0;
+  rx_tail=0;
+}
+
 
 void PS2_handle_cmds(uint8_t data) {
   uint8_t i;
@@ -322,29 +260,29 @@ void PS2_handle_cmds(uint8_t data) {
         //ignore.
         break;
       case PS2_CMD_RESET:
-        PS2_send(PS2_CMD_ACK);
-        PS2_send(PS2_CMD_BAT);
+        ps2_putc(PS2_CMD_ACK);
+        ps2_putc(PS2_CMD_BAT);
         break;
       case PS2_CMD_DISABLE:
         // we should disable sending output if we receive this command.
       case PS2_CMD_ENABLE:
         //clear out KB buffers 
         cli();
-        PS2_clear_buffers();
+        ps2_clear_buffers();
         sei();
-        PS2_send(PS2_CMD_ACK);
+        ps2_putc(PS2_CMD_ACK);
         break;
       default:
-        PS2_send(PS2_CMD_ACK);
+        ps2_putc(PS2_CMD_ACK);
         break;
       case PS2_CMD_ECHO:
-        PS2_send(PS2_CMD_ECHO);
+        ps2_putc(PS2_CMD_ECHO);
         break;
       case PS2_CMD_SET_CODE_SET:
-        PS2_send(PS2_CMD_ACK);
-        i=PS2_recv();
+        ps2_putc(PS2_CMD_ACK);
+        i=ps2_getc();
         if(i == 0) {
-          PS2_send(PS2_CodeSet);
+          ps2_putc(PS2_CodeSet);
         } else {
           PS2_CodeSet=i;
         }
@@ -353,14 +291,14 @@ void PS2_handle_cmds(uint8_t data) {
         // this should to be caught in another area, ignore if received here.
         break;
       case PS2_CMD_READ_ID:
-        PS2_send(PS2_CMD_ACK);
-        PS2_send(0xab);
-        PS2_send(0x83);
+        ps2_putc(PS2_CMD_ACK);
+        ps2_putc(0xab);
+        ps2_putc(0x83);
         break;
       case PS2_CMD_LEDS:
-        PS2_send(PS2_CMD_ACK);
-        PS2_LEDs=PS2_recv()&0x07;
-        PS2_send(PS2_CMD_ACK);
+        ps2_putc(PS2_CMD_ACK);
+        PS2_LEDs=ps2_getc()&0x07;
+        ps2_putc(PS2_CMD_ACK);
         break;
       case PS2_CMD_RESEND:
         break;
@@ -375,3 +313,13 @@ unsigned int PS2_get_typematic_period(uint8_t rate) {
   return ((8 + (rate & 0x07)) * (1 << ((rate & 0x18) >> 3)) << 2);
 }
 
+void ps2_lib_init(void) {
+  ps2_clear_buffers();
+  PS2_LEDs=0;
+  PS2_CodeSet=2;
+  
+  PS2_set_CLK();
+  PS2_set_DATA();
+  
+  PS2_State=PS2_ST_IDLE;
+}

@@ -20,10 +20,9 @@
 #ifndef PS2_DEVICE_H
 #define PS2_DEVICE_H 1
 
-void PS2_device_init(void);
-void PS2_device_trigger_send(void);
-void PS2_device_CLK(void);
-void PS2_device_DATA(void);
-void PS2_device_Timer(void);
+void ps2_dev_init(uint8_t);
+void ps2_dev_trigger_send(void);
+void ps2_dev_clk_irq(void);
+void ps2_dev_timer_irq(void);
 
 #endif

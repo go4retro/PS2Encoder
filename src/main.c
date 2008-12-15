@@ -17,11 +17,12 @@
     along with C=Key; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-#include <avr/interrupt.h>
 #include <inttypes.h>
-#include "usart.h"
+#include <avr/interrupt.h>
+#include <util/delay.h>
+#include "config.h"
 #include "ps2.h"
-#include "util.h"
+#include "uart.h"
 
 #define POLL_ST_IDLE          0
 #define POLL_ST_GET_X_KEY     1
@@ -35,17 +36,16 @@
 #define POLL_ST_GET_PAUSE_6   9
 #define POLL_ST_GET_PAUSE_7   10
 
-#define POLL_FLAG_LSHIFT 1
-#define POLL_FLAG_RSHIFT 2
-#define POLL_FLAG_SHIFT (POLL_FLAG_LSHIFT | POLL_FLAG_RSHIFT)
-#define POLL_FLAG_ALT    4
-#define POLL_FLAG_CONTROL 8
-#define POLL_FLAG_CTRL_ALT     (POLL_FLAG_CONTROL | POLL_FLAG_ALT)
+#define POLL_FLAG_LSHIFT      1
+#define POLL_FLAG_RSHIFT      2
+#define POLL_FLAG_SHIFT       (POLL_FLAG_LSHIFT | POLL_FLAG_RSHIFT)
+#define POLL_FLAG_ALT         4
+#define POLL_FLAG_CONTROL     8
+#define POLL_FLAG_CTRL_ALT    (POLL_FLAG_CONTROL | POLL_FLAG_ALT)
 
 static uint8_t meta;
 
-static uint8_t sw_state=0;
-static uint8_t led_state=0;
+//static uint8_t led_state=0;
 
 static uint8_t state=POLL_ST_IDLE;
 
@@ -53,13 +53,18 @@ static uint8_t state=POLL_ST_IDLE;
 void send(uint8_t sh, uint8_t unshifted, uint8_t shifted) {
   uint8_t key=(sh?shifted:unshifted);
   // send via RS232
-  USART0_Transmit(key);
-  PORTB=(PORTB&0xf0) | (key&0x0f);
-  PORTC=(PORTC&0xf0) | ((key&0xf0)>>4);
-  PIN_SET_HI(DDRD,PORTD,PIN7);
-  PIN_SET_HI(DDRD,PORTD,PIN7);
-  PIN_SET_HI(DDRD,PORTD,PIN7);
-  PIN_SET_LOW(DDRD,PORTD,PIN7);
+  uart_putc(key);
+  DATA_OUT(key);
+  if(STR_MODE()) {
+    STROBE_HI();
+    _delay_us(1);
+    STROBE_LO();
+  } else {
+    STROBE_LO();
+    _delay_us(1);
+    STROBE_HI();
+  }
+  
 }
 
 void map_key(uint8_t sh, uint8_t code,uint8_t state) {
@@ -293,10 +298,10 @@ void parse_key(uint8_t key, uint8_t state) {
     // CTRL/ALT/DEL is pressed.
     // bring RESET line low
     // repeat this a few times so the pulse will be long enough to trigger the logic.
-    PIN_SET_LOW(DDRD,PORTD,PIN6);
-    PIN_SET_LOW(DDRD,PORTD,PIN6);
-    PIN_SET_LOW(DDRD,PORTD,PIN6);
-    PIN_SET_HI(DDRD,PORTD,PIN6);
+    RESET_ACTIVE();
+    RESET_ACTIVE();
+    RESET_ACTIVE();
+    RESET_INACTIVE();
   } else {
       map_key(meta&POLL_FLAG_SHIFT,key,state);
   }
@@ -305,24 +310,27 @@ void parse_key(uint8_t key, uint8_t state) {
 int main( void ) {
   uint8_t key;
   
-  USART0_Init( B115200 );
+  uart_init();
   // use PortB and C for output data, one nybble each.
-  DDRB|=0x0f;
-  DDRC|=0x0f;
-  // PORTD:6 will be RESET. 
-  PIN_SET_HI(DDRD,PORTD,PIN6);
-  // PORTD:7 will be strobe.
-  PIN_SET_LOW(DDRD,PORTD,PIN7);
+  DATA_SETDDR();
+  RESET_SETDDR();
+  RESET_INACTIVE();
+  STR_MODE_SETDDR();
+  STROBE_SETDDR();
+  
+  if(STR_MODE())
+    STROBE_LO();
+  else
+    STROBE_LO();
 
-  PS2_init(PS2_MODE_HOST);
+  ps2_init(PS2_MODE_HOST);
   sei();
   
-  debug('.');
-  
+  uart_putc('.');
   for(;;) {
-    if(PS2_data_available() != 0) {
+    if(ps2_data_available() != 0) {
       // kb sent data...
-      key=PS2_recv();
+      key=ps2_getc();
       if(key==PS2_CMD_BAT) {
         state=PS2_ST_IDLE;
       } else {
