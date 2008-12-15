@@ -48,7 +48,7 @@
 #define PS2_PIN_DATA		  (1<<PIN2)
 #define PS2_PORT_DDR_DATA	DDRD
 
-#ifdef atmega8
+#if defined atmega8 || defined atmega88
 #define SIG_OUTPUT_COMPARE SIG_OUTPUT_COMPARE2
 #define OCR OCR2
 #define TCNT  TCNT2
@@ -59,7 +59,7 @@
 #define TIMSK_DATA (1<<OCIE2)
 #else
 #define SIG_OUTPUT_COMPARE SIG_OUTPUT_COMPARE0
-#define OCR OCR2
+#define OCR OCR0
 #define TCNT  TCNT0
 #define TCCR  TCCR0
 #define TCCR_DATA_DELAY (1<<CS02) | (1<<CS00) | (1<<WGM01)
@@ -270,3 +270,4 @@ unsigned int PS2_get_typematic_delay(uint8_t rate);
 unsigned int PS2_get_typematic_period(uint8_t rate);
 
 #endif
+
