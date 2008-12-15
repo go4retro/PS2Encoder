@@ -73,66 +73,66 @@ include $(CONFIG)
 # Set MCU name and length of binary for bootloader
 MCU := $(CONFIG_MCU)
 ifeq ($(MCU),atmega16)
-  BOOTLDRSIZE = 0x0400
-  BINARY_LENGTH = 0x3c00
-  EFUSE = 0xff
-  HFUSE = 0xd2
-  LFUSE = 0xfc
+	BOOTLDRSIZE = 0x0400
+	BINARY_LENGTH = 0x3c00
+	EFUSE = 0xff
+	HFUSE = 0xd2
+	LFUSE = 0xfc
 else ifeq ($(MCU),atmega8)
-  BOOTLDRSIZE = 0x0400
-  BINARY_LENGTH = 0x1c00
-  EFUSE = 0xff
-  HFUSE = 0xd2
-  LFUSE = 0xfc
+	BOOTLDRSIZE = 0x0400
+	BINARY_LENGTH = 0x1c00
+	EFUSE = 0xff
+	HFUSE = 0xd2
+	LFUSE = 0xfc
 else ifeq ($(MCU),atmega162)
-  BOOTLDRSIZE = 0x0400
-  BINARY_LENGTH = 0x3c00
-  EFUSE = 0xff
-  HFUSE = 0xd2
-  LFUSE = 0xfc
+	BOOTLDRSIZE = 0x0400
+	BINARY_LENGTH = 0x3c00
+	EFUSE = 0xff
+	HFUSE = 0xd2
+	LFUSE = 0xfc
 else ifeq ($(MCU),atmega32)
-  BOOTLDRSIZE = 0x0800
-  BINARY_LENGTH = 0x7800
-  EFUSE = 0xff
-  HFUSE = 0xd2
-  LFUSE = 0xfc
+	BOOTLDRSIZE = 0x0800
+	BINARY_LENGTH = 0x7800
+	EFUSE = 0xff
+	HFUSE = 0xd2
+	LFUSE = 0xfc
 else ifeq ($(MCU),atmega128)
-  BOOTLDRSIZE = 0x1000
-  BINARY_LENGTH = 0x1f000
-  EFUSE = 0xff
-  HFUSE = 0xd2
-  LFUSE = 0xfc
+	BOOTLDRSIZE = 0x1000
+	BINARY_LENGTH = 0x1f000
+	EFUSE = 0xff
+	HFUSE = 0xd2
+	LFUSE = 0xfc
 else ifeq ($(MCU),atmega1281)
-  BOOTLDRSIZE = 0x1000
-  BINARY_LENGTH = 0x1f000
-  BOOTLDRSIZE = 0x0800
-  EFUSE = 0xff
-  HFUSE = 0xd2
-  LFUSE = 0xfc
+	BOOTLDRSIZE = 0x1000
+	BINARY_LENGTH = 0x1f000
+	BOOTLDRSIZE = 0x0800
+	EFUSE = 0xff
+	HFUSE = 0xd2
+	LFUSE = 0xfc
 else ifeq ($(MCU),atmega2561)
-  BOOTLDRSIZE = 0x1000
-  BINARY_LENGTH = 0x3f000
-  EFUSE = 0xff
-  HFUSE = 0xd2
-  LFUSE = 0xfc
+	BOOTLDRSIZE = 0x1000
+	BINARY_LENGTH = 0x3f000
+	EFUSE = 0xff
+	HFUSE = 0xd2
+	LFUSE = 0xfc
 else ifeq ($(MCU),atmega644)
-  BOOTLDRSIZE = 0x1000
-  BINARY_LENGTH = 0xf000
-  EFUSE = 0xff
-  HFUSE = 0xd2
-  LFUSE = 0xfc
+	BOOTLDRSIZE = 0x1000
+	BINARY_LENGTH = 0xf000
+	EFUSE = 0xff
+	HFUSE = 0xd2
+	LFUSE = 0xfc
 else ifeq ($(MCU),atmega644p)
-  BOOTLDRSIZE = 0x1000
-  BINARY_LENGTH = 0xf000
-  EFUSE = 0xff
-  HFUSE = 0xd2
-  LFUSE = 0xfc
+	BOOTLDRSIZE = 0x1000
+	BINARY_LENGTH = 0xf000
+	EFUSE = 0xff
+	HFUSE = 0xd2
+	LFUSE = 0xfc
 else
 .PHONY: nochip
 nochip:
-  @echo '=============================================================='
-  @echo 'No known target chip specified.'
-  @exit 1
+	@echo '=============================================================='
+	@echo 'No known target chip specified.'
+	@exit 1
 endif
 
 # Directory for all source files
@@ -331,7 +331,7 @@ LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
 #LDFLAGS  += -Wl,--section-start=.text=$(BOOTLOADERSTARTADR)
 #LDFLAGS += -T linker_script.x
 ifeq ($(CONFIG_LINKER_RELAX),y)
-  LDFLAGS += -Wl,-O9,-relax
+	LDFLAGS += -Wl,-O9,-relax
 endif
 
 
@@ -449,8 +449,8 @@ ALL_ASFLAGS = -mmcu=$(MCU) -I$(SRCDIR) -x assembler-with-cpp $(ASFLAGS) $(CDEFS)
 all: build
 
 build: elf bin hex
-  $(E) "  SIZE   $(OBJDIR)/$(TARGET).elf"
-  $(Q)$(ELFSIZE)|grep -v debug
+	$(E) "  SIZE   $(OBJDIR)/$(TARGET).elf"
+	$(Q)$(ELFSIZE)|grep -v debug
 
 elf: $(OBJDIR)/$(TARGET).elf
 bin: $(OBJDIR)/$(TARGET).bin
@@ -462,11 +462,11 @@ sym: $(OBJDIR)/$(TARGET).sym
 
 # Doxygen output:
 doxygen:
-  -rm -rf doxyinput
-  mkdir doxyinput
-  cp $(SRCDIR)/*.h $(SRCDIR)/*.c doxyinput
-  src2doxy.pl doxyinput/*.h doxyinput/*.c
-  doxygen doxygen.conf
+	-rm -rf doxyinput
+	mkdir doxyinput
+	cp $(SRCDIR)/*.h $(SRCDIR)/*.c doxyinput
+	src2doxy.pl doxyinput/*.h doxyinput/*.c
+	doxygen doxygen.conf
 
 # Display size of file.
 HEXSIZE = $(SIZE) --mcu=$(MCU) --target=$(FORMAT) $(OBJDIR)/$(TARGET).hex
@@ -475,10 +475,10 @@ AVRMEM = avr-mem.sh $(TARGET).elf $(MCU)
 
 # Program the device.  
 program: $(OBJDIR)/$(TARGET).hex $(OBJDIR)/$(TARGET).eep
-  $(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
+	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
   
 fuses: $(OBJDIR)/$(TARGET).hex $(OBJDIR)/$(TARGET).eep
-  $(AVRDUDE) $(AVRDUDE_FLAGS)  $(AVRDUDE_WRITE_FUSES) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
+	$(AVRDUDE) $(AVRDUDE_FLAGS)  $(AVRDUDE_WRITE_FUSES) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
   
 
 
@@ -486,29 +486,29 @@ fuses: $(OBJDIR)/$(TARGET).hex $(OBJDIR)/$(TARGET).eep
 #     define the reset signal, load the target file, connect to target, and set 
 #     a breakpoint at main().
 gdb-config: 
-  @$(REMOVE) $(GDBINIT_FILE)
-  @echo define reset >> $(GDBINIT_FILE)
-  @echo SIGNAL SIGHUP >> $(GDBINIT_FILE)
-  @echo end >> $(GDBINIT_FILE)
-  @echo file $(TARGET).elf >> $(GDBINIT_FILE)
-  @echo target remote $(DEBUG_HOST):$(DEBUG_PORT)  >> $(GDBINIT_FILE)
+	@$(REMOVE) $(GDBINIT_FILE)
+	@echo define reset >> $(GDBINIT_FILE)
+	@echo SIGNAL SIGHUP >> $(GDBINIT_FILE)
+	@echo end >> $(GDBINIT_FILE)
+	@echo file $(TARGET).elf >> $(GDBINIT_FILE)
+	@echo target remote $(DEBUG_HOST):$(DEBUG_PORT)  >> $(GDBINIT_FILE)
 ifeq ($(DEBUG_BACKEND),simulavr)
-  @echo load  >> $(GDBINIT_FILE)
+	@echo load  >> $(GDBINIT_FILE)
 endif
-  @echo break main >> $(GDBINIT_FILE)
+	@echo break main >> $(GDBINIT_FILE)
 
 debug: gdb-config $(TARGET).elf
 ifeq ($(DEBUG_BACKEND), avarice)
-  @echo Starting AVaRICE - Press enter when "waiting to connect" message displays.
-  @$(WINSHELL) /c start avarice --jtag $(JTAG_DEV) --erase --program --file \
-  $(TARGET).elf $(DEBUG_HOST):$(DEBUG_PORT)
-  @$(WINSHELL) /c pause
+	@echo Starting AVaRICE - Press enter when "waiting to connect" message displays.
+	@$(WINSHELL) /c start avarice --jtag $(JTAG_DEV) --erase --program --file \
+	$(TARGET).elf $(DEBUG_HOST):$(DEBUG_PORT)
+	@$(WINSHELL) /c pause
 
 else
-  @$(WINSHELL) /c start simulavr --gdbserver --device $(MCU) --clock-freq \
-  $(DEBUG_MFREQ) --port $(DEBUG_PORT)
+	@$(WINSHELL) /c start simulavr --gdbserver --device $(MCU) --clock-freq \
+	$(DEBUG_MFREQ) --port $(DEBUG_PORT)
 endif
-  @$(WINSHELL) /c start avr-$(DEBUG_UI) --command=$(GDBINIT_FILE)
+	@$(WINSHELL) /c start avr-$(DEBUG_UI) --command=$(GDBINIT_FILE)
 
 
 
@@ -523,53 +523,53 @@ COFFCONVERT += --change-section-address .eeprom-0x810000
 
 
 coff: $(TARGET).elf
-  $(COFFCONVERT) -O coff-avr $< $(TARGET).cof
+	$(COFFCONVERT) -O coff-avr $< $(TARGET).cof
 
 
 extcoff: $(TARGET).elf
-  $(COFFCONVERT) -O coff-ext-avr $< $(TARGET).cof
+	$(COFFCONVERT) -O coff-ext-avr $< $(TARGET).cof
 
 
 # Generate autoconf.h from config
 .PRECIOUS : $(OBJDIR)/autoconf.h
 $(OBJDIR)/autoconf.h: $(CONFIG) | $(OBJDIR)
-  $(E) "  CONF2H $(CONFIG)"
-  $(Q)gawk -f conf2h.awk $(CONFIG) > $(OBJDIR)/autoconf.h
+	$(E) "  CONF2H $(CONFIG)"
+	$(Q)gawk -f conf2h.awk $(CONFIG) > $(OBJDIR)/autoconf.h
 
 # Create final output files (.hex, .eep) from ELF output file.
 ifeq ($(CONFIG_BOOTLOADER),y)
 $(OBJDIR)/%.bin: $(OBJDIR)/%.elf
-  $(E) "  BIN    $@"
-  $(Q)$(OBJCOPY) -O binary -R .eeprom $< $@
-  $(E) "  CRCGEN $@"
-  -$(Q)crcgen-new $@ $(BINARY_LENGTH) $(CONFIG_BOOT_DEVID) $(BOOT_VERSION)
-  $(E) "  COPY   $(CONFIG_HARDWARE_NAME)-bootloader-$(PROGRAMVERSION).bin"
-  $(Q)$(COPY) $@ $(OBJDIR)/$(CONFIG_HARDWARE_NAME)-bootloader-$(PROGRAMVERSION).bin
+	$(E) "  BIN    $@"
+	$(Q)$(OBJCOPY) -O binary -R .eeprom $< $@
+	$(E) "  CRCGEN $@"
+	-$(Q)crcgen-new $@ $(BINARY_LENGTH) $(CONFIG_BOOT_DEVID) $(BOOT_VERSION)
+	$(E) "  COPY   $(CONFIG_HARDWARE_NAME)-bootloader-$(PROGRAMVERSION).bin"
+	$(Q)$(COPY) $@ $(OBJDIR)/$(CONFIG_HARDWARE_NAME)-bootloader-$(PROGRAMVERSION).bin
 else
 $(OBJDIR)/%.bin: $(OBJDIR)/%.elf
-  $(E) "  BIN    $@"
-  $(Q)$(OBJCOPY) -O binary -R .eeprom $< $@
+	$(E) "  BIN    $@"
+	$(Q)$(OBJCOPY) -O binary -R .eeprom $< $@
 endif
 
 
 $(OBJDIR)/%.hex: $(OBJDIR)/%.elf
-  $(E) "  HEX    $@"
-  $(Q)$(OBJCOPY) -O $(FORMAT) -R .eeprom $< $@
+	$(E) "  HEX    $@"
+	$(Q)$(OBJCOPY) -O $(FORMAT) -R .eeprom $< $@
 
 $(OBJDIR)/%.eep: $(OBJDIR)/%.elf
-  $(E) "  EEP    $@"
-  $(Q)$(OBJCOPY) -j .eeprom --set-section-flags=.eeprom="alloc,load" \
-  --change-section-lma .eeprom=0 --no-change-warnings -O $(FORMAT) $< $@ || exit 0
+	$(E) "  EEP    $@"
+	$(Q)$(OBJCOPY) -j .eeprom --set-section-flags=.eeprom="alloc,load" \
+	--change-section-lma .eeprom=0 --no-change-warnings -O $(FORMAT) $< $@ || exit 0
 
 # Create extended listing file from ELF output file.
 $(OBJDIR)/%.lss: $(OBJDIR)/%.elf
-  $(E) "  LSS    $<"
-  $(Q)$(OBJDUMP) -h -S $< > $@
+	$(E) "  LSS    $<"
+	$(Q)$(OBJDUMP) -h -S $< > $@
 
 # Create a symbol table from ELF output file.
 $(OBJDIR)/%.sym: $(OBJDIR)/%.elf
-  $(E) "  SYM    $<"
-  $(E)$(NM) -n $< > $@
+	$(E) "  SYM    $<"
+	$(E)$(NM) -n $< > $@
 
 
 
@@ -577,60 +577,60 @@ $(OBJDIR)/%.sym: $(OBJDIR)/%.elf
 .SECONDARY : $(OBJDIR)/$(TARGET).elf
 .PRECIOUS : $(OBJ)
 $(OBJDIR)/%.elf: $(OBJ) | $(OBJDIR)
-  $(E) "  LINK   $@"
-  $(Q)$(CC) $(ALL_CFLAGS) $^ --output $@ $(LDFLAGS)
+	$(E) "  LINK   $@"
+	$(Q)$(CC) $(ALL_CFLAGS) $^ --output $@ $(LDFLAGS)
 
 
 # Compile: create object files from C source files.
 $(OBJDIR)/%.o : $(SRCDIR)/%.c | $(OBJDIR) $(OBJDIR)/autoconf.h
-  $(E) "  CC     $<"
-  $(Q)$(CC) -c $(ALL_CFLAGS) $< -o $@ 
+	$(E) "  CC     $<"
+	$(Q)$(CC) -c $(ALL_CFLAGS) $< -o $@ 
 
 
 # Compile: create assembler files from C source files.
 $(OBJDIR)/%.s : $(SRCDIR)/%.c | $(OBJDIR) $(OBJDIR)/autoconf.h
-  $(E) "  CC     $<"
-  $(Q)$(CC) -S $(ALL_CFLAGS) $< -o $@
+	$(E) "  CC     $<"
+	$(Q)$(CC) -S $(ALL_CFLAGS) $< -o $@
 
 
 # Assemble: create object files from assembler source files.
 $(OBJDIR)/%.o : $(SRCDIR)/%.S | $(OBJDIR) $(OBJDIR)/autoconf.h
-  $(E) "  AS     $<"
-  $(Q)$(CC) -c $(ALL_ASFLAGS) $< -o $@
+	$(E) "  AS     $<"
+	$(Q)$(CC) -c $(ALL_ASFLAGS) $< -o $@
 
 # Create preprocessed source for use in sending a bug report.
 $(OBJDIR)/%.i : $(SRCDIR)/%.c | $(OBJDIR) $(OBJDIR)/autoconf.h
-  $(E) "  CC     $<"
-  $(Q)$(CC) -E -mmcu=$(MCU) -I$(SRCDIR) $(CFLAGS) $< -o $@ 
+	$(E) "  CC     $<"
+	$(Q)$(CC) -E -mmcu=$(MCU) -I$(SRCDIR) $(CFLAGS) $< -o $@ 
 
 # Create the output directory
 $(OBJDIR):
-  $(E) "  MKDIR  $(OBJDIR)"
-  $(Q)mkdir $(OBJDIR)
+	$(E) "  MKDIR  $(OBJDIR)"
+	$(Q)mkdir $(OBJDIR)
 
 # Target: clean project.
 clean: begin clean_list end
 
 clean_list :
-  $(E) "  CLEAN"
-  $(Q)$(REMOVE) $(OBJDIR)/$(TARGET).hex
-  $(Q)$(REMOVE) $(OBJDIR)/$(TARGET).bin
-  $(Q)$(REMOVE) $(OBJDIR)/$(TARGET).eep
-  $(Q)$(REMOVE) $(OBJDIR)/$(TARGET).cof
-  $(Q)$(REMOVE) $(OBJDIR)/$(TARGET).elf
-  $(Q)$(REMOVE) $(OBJDIR)/$(TARGET).map
-  $(Q)$(REMOVE) $(OBJDIR)/$(TARGET).sym
-  $(Q)$(REMOVE) $(OBJDIR)/$(TARGET).lss
-  $(Q)$(REMOVE) $(OBJ)
-  $(Q)$(REMOVE) $(OBJDIR)/autoconf.h
-  $(Q)$(REMOVE) $(OBJDIR)/*.bin
-  $(Q)$(REMOVE) $(LST)
-  $(Q)$(REMOVE) $(SRCDIR)/$(CSRC:.c=.s)
-  $(Q)$(REMOVE) $(SRCDIR)$(CSRC:.c=.d)
-  $(Q)$(REMOVE) .dep/*
-  $(Q)$(REMOVE) -rf codedoc
-  $(Q)$(REMOVE) -rf doxyinput
-  -$(Q)rmdir $(OBJDIR)
+	$(E) "  CLEAN"
+	$(Q)$(REMOVE) $(OBJDIR)/$(TARGET).hex
+	$(Q)$(REMOVE) $(OBJDIR)/$(TARGET).bin
+	$(Q)$(REMOVE) $(OBJDIR)/$(TARGET).eep
+	$(Q)$(REMOVE) $(OBJDIR)/$(TARGET).cof
+	$(Q)$(REMOVE) $(OBJDIR)/$(TARGET).elf
+	$(Q)$(REMOVE) $(OBJDIR)/$(TARGET).map
+	$(Q)$(REMOVE) $(OBJDIR)/$(TARGET).sym
+	$(Q)$(REMOVE) $(OBJDIR)/$(TARGET).lss
+	$(Q)$(REMOVE) $(OBJ)
+	$(Q)$(REMOVE) $(OBJDIR)/autoconf.h
+	$(Q)$(REMOVE) $(OBJDIR)/*.bin
+	$(Q)$(REMOVE) $(LST)
+	$(Q)$(REMOVE) $(SRCDIR)/$(CSRC:.c=.s)
+	$(Q)$(REMOVE) $(SRCDIR)$(CSRC:.c=.d)
+	$(Q)$(REMOVE) .dep/*
+	$(Q)$(REMOVE) -rf codedoc
+	$(Q)$(REMOVE) -rf doxyinput
+	-$(Q)rmdir $(OBJDIR)
 
 # Include the dependency files.
 -include $(shell mkdir .dep 2>/dev/null) $(wildcard .dep/*)
