@@ -136,7 +136,7 @@ nochip:
 endif
 
 # Directory for all source files
-SRCDIR := src2
+SRCDIR := src
 
 # Directory for all generated files
 OBJDIR := obj-$(CONFIG_MCU:atmega%=m%)$(CONFIGSUFFIX)
@@ -245,7 +245,7 @@ CFLAGS += -Wstrict-prototypes
 #CFLAGS += -Wundef
 #CFLAGS += -Wunreachable-code
 #CFLAGS += -Wsign-compare
-#CFLAGS += -Werror  // JLB added
+CFLAGS += -Werror
 CFLAGS += -Wa,-adhlns=$(OBJDIR)/$(*F).lst
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 CFLAGS += $(CSTANDARD)
@@ -476,11 +476,9 @@ AVRMEM = avr-mem.sh $(TARGET).elf $(MCU)
 # Program the device.  
 program: $(OBJDIR)/$(TARGET).hex $(OBJDIR)/$(TARGET).eep
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
-  
+	
 fuses: $(OBJDIR)/$(TARGET).hex $(OBJDIR)/$(TARGET).eep
-	$(AVRDUDE) $(AVRDUDE_FLAGS)  $(AVRDUDE_WRITE_FUSES) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
-  
-
+	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FUSES) 
 
 # Generate avr-gdb config/init file which does the following:
 #     define the reset signal, load the target file, connect to target, and set 
@@ -635,8 +633,6 @@ clean_list :
 # Include the dependency files.
 -include $(shell mkdir .dep 2>/dev/null) $(wildcard .dep/*)
 
-# Manual dependency for the assembler module
-$(OBJDIR)/fastloader-ll.o: $(SRCDIR)/config.h $(OBJDIR)/autoconf.h
 
 # Listing of phony targets.
 .PHONY : all begin finish end sizebefore sizeafter gccversion \

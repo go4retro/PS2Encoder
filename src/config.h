@@ -25,9 +25,9 @@
 #  define STROBE_HI()         PORTD |= _BV(PD7)
 #  define STROBE_LO()         PORTD &= ~_BV(PD7)
 
-#  define STR_MODE_SETDDR()   do { DDRD &= ~_BV(PD5) ; PORTD |= _BV(PD5); } while(0)
-// this must return non-zero for active HI
-#  define STR_MODE()          (PORTD & _BV(PD5))
+#  define CONF_MODE_SETDDR()  do { DDRD &= ~_BV(PD5) ; PORTD |= _BV(PD5); } while(0)
+// this must return zero for config
+#  define CONF_MODE()         (!(PIND & _BV(PD5)))
 
 #  define PS2_PORT_DDR_CLK    DDRD
 #  define PS2_PORT_CLK_OUT    PORTD

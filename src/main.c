@@ -42,30 +42,37 @@
 #define POLL_FLAG_ALT         4
 #define POLL_FLAG_CONTROL     8
 #define POLL_FLAG_CTRL_ALT    (POLL_FLAG_CONTROL | POLL_FLAG_ALT)
+#define POLL_FLAG_CAPS_LOCK   16
+
+#define KB_CONFIG             1
+
+#define OPT_CRLF              1
+#define OPT_STROBE_LO         2
+#define OPT_BACKSPACE         4
 
 static uint8_t meta;
-
-//static uint8_t led_state=0;
-
+static uint8_t config;
 static uint8_t state=POLL_ST_IDLE;
+//static uint8_t led_state=0;
+static uint8_t options;
 
 
 void send(uint8_t sh, uint8_t unshifted, uint8_t shifted) {
-  uint8_t key=(sh?shifted:unshifted);
+  uint8_t key=(sh | ((meta & POLL_FLAG_CAPS_LOCK) && unshifted >= 'a' && unshifted <= 'z')?shifted:unshifted);
   // send via RS232
   uart_putc(key);
   DATA_OUT(key);
-  if(STR_MODE()) {
-    STROBE_HI();
-    _delay_us(1);
+  if(options & OPT_STROBE_LO) {
     STROBE_LO();
+    _delay_us(1);
+    STROBE_HI();
   } else {
-    STROBE_LO();
-    _delay_us(1);
     STROBE_HI();
+    _delay_us(1);
+    STROBE_LO();
   }
-  
 }
+
 
 void map_key(uint8_t sh, uint8_t code,uint8_t state) {
   // Yes, there are many more elegant ways of handling the mapping.  But, this is simple, and easy to rework.
@@ -240,18 +247,18 @@ void map_key(uint8_t sh, uint8_t code,uint8_t state) {
         send(sh,'=','+');
         break;
       case PS2_KEY_CAPS_LOCK:
+        if(meta & POLL_FLAG_CAPS_LOCK)
+          meta &= (uint8_t)~POLL_FLAG_CAPS_LOCK;
+        else
+          meta |= POLL_FLAG_CAPS_LOCK;
         break;
       case PS2_KEY_RSHIFT:
         meta|=POLL_FLAG_RSHIFT;      
         break;
       case PS2_KEY_ENTER:
-        // this should also be configurable
-        //send(sh,13,13);
-        // or
         send(sh,13,13);
-        send(sh,10,10);
-        // or
-        //send(sh,10,10);
+        if(options & OPT_CRLF)
+          send(sh,10,10);
         break;
       case PS2_KEY_RBRACKET:
         send(sh,']','}');
@@ -260,9 +267,10 @@ void map_key(uint8_t sh, uint8_t code,uint8_t state) {
         send(sh,'\\','|');
         break;
       case PS2_KEY_BS:
-        // maybe this should be configurable.
-        send(sh,0x09,0x09);
-        //send(sh,0x7f,0x7f);
+        if(options & OPT_BACKSPACE)
+          send(sh,0x09,0x09);
+        else
+          send(sh,0x7f,0x7f);
         break;
         break;
       case PS2_KEY_ESC:
@@ -286,6 +294,52 @@ void map_key(uint8_t sh, uint8_t code,uint8_t state) {
   }
 }
 
+void set_options(uint8_t key) {
+  switch(key) {
+  case PS2_KEY_L:   // LOW STROBE
+    options |= OPT_STROBE_LO;
+    STROBE_HI();
+    break;
+  case PS2_KEY_H:   // HI STROBE
+    options &= (uint8_t)~OPT_STROBE_LO;
+    STROBE_LO();
+    break;
+  case PS2_KEY_1:   // 1200 bps
+    break;
+  case PS2_KEY_2:   // 2400 bps
+    break;
+  case PS2_KEY_3:   // 4800 bps
+    break;
+  case PS2_KEY_4:   // 9600 bps
+    break;
+  case PS2_KEY_5:   // 19200 bps
+    break;
+  case PS2_KEY_6:   // 38400 bps
+    break;
+  case PS2_KEY_BS:   // Use Backspace
+    options |= OPT_BACKSPACE;
+    break;
+  case PS2_KEY_DELETE | 0x80:   // Use Delete
+    options &= (uint8_t)~OPT_BACKSPACE;
+    break;
+  case PS2_KEY_ENTER:
+    if(meta & POLL_FLAG_SHIFT)
+      options |= OPT_CRLF;
+    else
+      options &= (uint8_t)~OPT_CRLF;
+    break;
+
+  case PS2_KEY_EQUALS:   // Increase OSCCAL
+    OSCCAL++;
+    break;
+  case PS2_KEY_MINUS:   // Decrease OSCCON
+    OSCCAL--;
+    break;
+  case PS2_KEY_W:   // Save Data
+    break;
+  }
+}
+
 void parse_key(uint8_t key, uint8_t state) {
   if((key&0x7f)==PS2_KEY_ALT) {
     // turn on or off the ALT META flag
@@ -299,12 +353,18 @@ void parse_key(uint8_t key, uint8_t state) {
     // bring RESET line low
     // repeat this a few times so the pulse will be long enough to trigger the logic.
     RESET_ACTIVE();
-    RESET_ACTIVE();
-    RESET_ACTIVE();
+    _delay_us(1);
     RESET_INACTIVE();
-  } else {
-      map_key(meta&POLL_FLAG_SHIFT,key,state);
-  }
+  } else if(CONF_MODE() && (meta&POLL_FLAG_CTRL_ALT)==POLL_FLAG_CTRL_ALT && key==PS2_KEY_BS && state) {
+    // CTRL/ALT/BS config mode
+    config ^= KB_CONFIG;  
+  } else if (config) {
+    uart_putc('*');
+    if(state) { // set parms on keydown
+      set_options(key);
+    }
+  } else
+    map_key(meta&POLL_FLAG_SHIFT,key,state);
 }
 
 int main( void ) {
@@ -315,11 +375,11 @@ int main( void ) {
   DATA_SETDDR();
   RESET_SETDDR();
   RESET_INACTIVE();
-  STR_MODE_SETDDR();
+  CONF_MODE_SETDDR();
   STROBE_SETDDR();
   
-  if(STR_MODE())
-    STROBE_LO();
+  if(options & OPT_STROBE_LO)
+    STROBE_HI();
   else
     STROBE_LO();
 
