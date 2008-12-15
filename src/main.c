@@ -261,6 +261,7 @@ void map_key(uint8_t sh, uint8_t code,uint8_t state) {
         break;
         break;
       case PS2_KEY_ESC:
+        send(sh,0x1b,0x1b);
         break;
       case PS2_KEY_NUM_LOCK:
         break;
