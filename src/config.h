@@ -10,7 +10,9 @@
 #define FALSE 0
 
 #define PS2_RX_BUFFER_SHIFT   3
-#define PS2_TX_BUFFER_SHIFT   3 
+#define PS2_TX_BUFFER_SHIFT   3
+
+#define DYNAMIC_BPS_RATE
 
 #if CONFIG_HARDWARE_VARIANT==1
 

@@ -44,70 +44,65 @@ static volatile uint8_t PS2_One_Count;
 static volatile uint8_t PS2_LEDs;
 static volatile uint8_t PS2_CodeSet;
 
-void PS2_enable_IRQ_CLK_Rise() {
-	//GICR &= ~(1 << INT1);
-	GIFR |= (1<<INTF1);
+void PS2_enable_IRQ_CLK_Rise(void) {
 	// rising edge
-	MCUCR |= (1 << ISC11) | (1<< ISC10);
+	CLK_INTDR |= (1 << CLK_ISC1) | (1 << CLK_ISC0);
 	// turn on
-	GICR |= (1 << INT1);
+	CLK_INTCR |= (1 << CLK_INT);
 }
 
-void PS2_enable_IRQ_CLK_Fall() {
-	//GICR &= ~(1 << INT1);
-	GIFR |= (1<<INTF1);
-	// rising edge
-	MCUCR |= (1 << ISC11);
-	MCUCR &=(uint8_t)~(1<<ISC10);
+
+void PS2_enable_IRQ_CLK_Fall(void) {
+	// falling edge
+  CLK_INTDR = (CLK_INTDR & (uint8_t)~((1 << CLK_ISC1) | (1 << CLK_ISC0))) | (1 << ISC11);
 	// turn on
-	GICR |= (1 << INT1);
+  CLK_INTCR |= (1 << CLK_INT);
 }
 
-void PS2_disable_IRQ_CLK() {
-	GICR &= (uint8_t)~(1 << INT1);
+
+void PS2_disable_IRQ_CLK(void) {
+	CLK_INTCR &= (uint8_t)~(1 << CLK_INT);
 }
 
-void PS2_delay(uint16_t ms) {
-  // careful, we use the same timer as the IRQ.
-  // set to /1024. and CTC mode
-  OCR=14;  // 14 is ~1ms
-  TCNT=0;
-  TCCR = TCCR_DATA_DELAY;
-  do {
-    while(!(TIFR & TIFR_DATA));
-    TIFR|=TIFR_DATA;
-  } while (ms-- > 0);
-  // shut timer off.
-  TCCR=0;
+
+ISR(CLK_INT_vect) {
+  ps2_clk_irq();
 }
+
 
 void ps2_timer_irq_set(uint8_t us) {
 	//TCCR0 &=~(1<<CS01);
-	//TIMSK &= ~(1<<OCIE0);
-	TIFR |= TIFR_DATA;
+	PS2_TIFR |= PS2_TIFR_DATA;
 	// clear TCNT0;
-	TCNT=0;
+	PS2_TCNT=0;
 	// set the count...
 #if F_CPU > 14000000
   // us is uS....  Need to * 14 to get ticks, then divide by 8...
   // cheat... * 14 / 8 = *2 = <<1  
-	OCR=(uint8_t)(us<<1);
+	PS2_OCR=(uint8_t)(us<<1);
 #elif F_CPU > 7000000
-  OCR=us;
+  PS2_OCR=us;
 #else
-  OCR=us >> 1;
+  PS2_OCR=us >> 1;
 #endif
 	// set output compare IRQ
-	TIMSK |= TIMSK_DATA;
+  PS2_TIMSK |= PS2_TIMSK_DATA;
 	// set prescaler to System Clock/8 and Compare Timer
-  TCCR =TCCR_DATA;
+	PS2_TCCR =PS2_TCCR_DATA;
 }
+
 
 void ps2_timer_irq_off() {
 	// turn off timer
-  TCCR =0;
-	TIMSK &=(uint8_t)~TIMSK_DATA;
+  PS2_TCCR =0;
+  PS2_TIMSK &=(uint8_t)~PS2_TIMSK_DATA;
 }
+
+
+ISR(PS2_TIMER_COMP_vect) {
+  ps2_timer_irq();
+}
+
 
 uint8_t PS2_get_state(void) {
   return PS2_State;
@@ -143,8 +138,6 @@ void ps2_putc( uint8_t data ) {
     // Wait for free space in buffer
     ;
   }
-  
-  //printHex(data);
   // Store data in buffer
 	txbuf[tmphead] = data;
   // Store new index
@@ -183,8 +176,6 @@ void PS2_read_byte(void) {
   PS2_Bit_Count=0;
   PS2_One_Count=0;
   PS2_Byte = txbuf[( tx_tail + 1 ) & PS2_TX_BUFFER_MASK];  /* Start transmition */
-  //debug('o');
-  //printHex(PS2_Byte);
 }
 
 void PS2_commit_read_byte(void) {
@@ -234,14 +225,6 @@ void PS2_clear_counters(void) {
   PS2_Byte = 0;
   PS2_Bit_Count=0;
   PS2_One_Count=0;
-}
-
-ISR(SIG_INTERRUPT1) {
-  ps2_clk_irq();
-}
-
-ISR(SIG_OUTPUT_COMPARE) {
-  ps2_timer_irq();
 }
 
 static void ps2_clear_buffers(void) {
@@ -305,11 +288,13 @@ void PS2_handle_cmds(uint8_t data) {
     }
 }
 
-unsigned int PS2_get_typematic_delay(uint8_t rate) {
-  return (((rate & 0x30) >> 5) + 1) * 250;
+/* this returns the initial delay in ms */
+uint16_t PS2_get_typematic_delay(uint8_t rate) {
+  return (((rate & 0x60) >> 5) + 1) * 250;
 }
 
-unsigned int PS2_get_typematic_period(uint8_t rate) {
+/* this returns the rate in CPS */
+uint16_t PS2_get_typematic_period(uint8_t rate) {
   return ((8 + (rate & 0x07)) * (1 << ((rate & 0x18) >> 3)) << 2);
 }
 

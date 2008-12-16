@@ -27,6 +27,8 @@
 #ifndef UART_H
 #define UART_H
 
+#define  CALC_BPS(x) ((int)((double)F_CPU / (16.0 * x ) - 1))
+
 #ifdef CONFIG_UART_DEBUG
 
 #include <avr/pgmspace.h>
@@ -68,6 +70,18 @@ void uart2_puts(char* str);
 #define uart2_putc(x)   do {} while(0)
 #define uart2_puts(x)   do {} while(0)
 
+#endif
+
+#if defined CONFIG_UART_DEBUG && defined DYNAMIC_BPS_RATE
+void uart_set_bps(uint16_t bps);
+#else
+#define uart_set_bps(bps) do {} while(0)
+#endif
+
+#if defined CONFIG_UART_2 && defined DYNAMIC_BPS_RATE
+void uart2_set_bps(uint16_t bps);
+#else
+#define uart2_set_bps(bps) do {} while(0)
 #endif
 
 #endif

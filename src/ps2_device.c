@@ -19,6 +19,7 @@
 */
 #include <inttypes.h>
 #include <avr/io.h>
+#include <util.delay.h>
 #include "config.h"
 #include "avrcompat.h"
 #include "ps2.h"
@@ -47,18 +48,18 @@ void ps2_dev_init(uint8_t mode) {
   PS2_set_CLK();
   PS2_set_DATA();
   // wait 600mS.
-  PS2_delay(600);
+  _delay_ms(600);
   //PS2_clear_CLK();
   //PS2_clear_DATA();
-  //PS2_delay(775);
+  //_delay_ms(775);
   //PS2_set_CLK();
-  //PS2_delay(80);
+  //_delay_ms(80);
   //PS2_set_DATA();
-  //PS2_delay(384);
+  //_delay_ms(384);
   //PS2_clear_CLK();
-  //PS2_delay(483);
+  //_delay_ms(483);
   //PS2_set_CLK();
-  //PS2_delay(60);
+  //_delay_ms(60);
   ps2_putc(PS2_CMD_BAT);
   // need to do this once here, as CLK might already be low.
   //if(!PS2_read_CLK()) {
@@ -122,7 +123,7 @@ void ps2_dev_clk_irq(void) {
       break;
     default:
       //debug('&');
-      //printHex(PS2_get_state());
+      //uart_puthex(PS2_get_state());
       break;
   }
 }
@@ -296,7 +297,7 @@ void ps2_dev_timer_irq(void) {
       break;
     default:
       //debug('#');
-      //printHex(PS2_get_state());
+      //uart_puthex(PS2_get_state());
       ps2_timer_irq_off();
       break;
   } 

@@ -55,9 +55,7 @@
 #define PS2_ST_HOST_INHIBIT   21
 #define PS2_ST_WAIT_RESPONSE  22
 
-void PS2_delay(uint16_t ms);
 #define PS2_set_CLK()     do { PS2_PORT_CLK_OUT |= ( PS2_PIN_CLK); PS2_PORT_DDR_CLK &= (uint8_t)~(PS2_PIN_CLK); } while(0)
-
 #define PS2_clear_CLK()   do { PS2_PORT_DDR_CLK |= (PS2_PIN_CLK); PS2_PORT_CLK_OUT &= (uint8_t)~( PS2_PIN_CLK); } while(0) 
 #define PS2_read_CLK()    (PS2_PORT_CLK_IN & (PS2_PIN_CLK))
 

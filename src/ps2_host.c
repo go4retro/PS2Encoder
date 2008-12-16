@@ -24,16 +24,23 @@
 #include "ps2.h"
 #include "ps2_lib.h"
 #include "ps2_host.h"
+#include "uart.h"
 
-void ps2_host_init(uint8_t mode) {
-  ps2_lib_init();
-
-  PS2_enable_IRQ_CLK_Fall();
+static void check_for_data(void) {
+    if(PS2_data_to_send() != 0) {
+      //uart_putc('d');
+      ps2_host_trigger_send();
+    } else {
+      //uart_putc('n');
+      // wait for something to receive
+      PS2_set_state(PS2_ST_IDLE);
+      PS2_enable_IRQ_CLK_Fall();
+    }
 }
-void ps2_init(uint8_t mode) __attribute__ ((weak, alias("ps2_host_init")));
+
 
 void ps2_host_trigger_send(void) {
-  //debug2('t');
+  //uart_putc('t');
   // need to get devices attention...
   PS2_set_state(PS2_ST_PREP_START);
   PS2_disable_IRQ_CLK();
@@ -43,19 +50,8 @@ void ps2_host_trigger_send(void) {
 }
 void ps2_trigger_send(void) __attribute__ ((weak, alias("ps2_host_trigger_send")));
 
-static void PS2_host_check_for_data(void) {
-    if(PS2_data_to_send() != 0) {
-      //debug2('d');
-      ps2_host_trigger_send();
-    } else {
-      //debug2('n');
-      // wait for something to receive
-      PS2_set_state(PS2_ST_IDLE);
-      PS2_enable_IRQ_CLK_Fall();
-    }
-}
-
 void ps2_host_clk_irq(void) {
+  //uart_putc('a' + PS2_get_state());
   switch(PS2_get_state()) {
     case PS2_ST_WAIT_RESPONSE:
     case PS2_ST_IDLE:
@@ -95,10 +91,10 @@ void ps2_host_clk_irq(void) {
     case PS2_ST_HOLDOFF:
       // CLK rose, so now, check for more data.
       // do we have data to send to keyboard?
-      PS2_host_check_for_data();
+      check_for_data();
       break;
     case PS2_ST_PREP_BIT:
-      //debug2('b');
+      //uart_putc('b');
       // time to send bits...
       if(PS2_get_count() == 8) {
         // we are done..., do parity
@@ -117,13 +113,12 @@ void ps2_host_clk_irq(void) {
       if(!PS2_read_DATA()) {
         // commit the send
         PS2_commit_read_byte();
-        
         /*
          * We could wait for the CLK hi, then check to see if we have more
          * data to send.  However, all cmds out have a required ack or response
          * so we'll just set to a non-IDLE state and wait for the CLK
          */
-        //debug2('a');
+        //uart_putc('a');
         PS2_set_state(PS2_ST_WAIT_RESPONSE);
         PS2_enable_IRQ_CLK_Fall();
       } else {
@@ -131,8 +126,8 @@ void ps2_host_clk_irq(void) {
       }
       break;
     default:
-      //debug('&');
-      //debug('a' + PS2_get_state());
+      //uart_putc('&');
+      //uart_putc('a' + PS2_get_state());
       break;
   }
 }
@@ -144,24 +139,22 @@ void ps2_host_timer_irq() {
     case PS2_ST_GET_BIT:
     case PS2_ST_GET_PARITY:
     case PS2_ST_GET_STOP:
-      //debug2('T');
-      //debug2('x' + PS2_get_state());
+      //uart_putc('T');
+      //uart_putc('x' + PS2_get_state());
       // do we have data to send to keyboard?
-      PS2_host_check_for_data();
+      check_for_data();
       break;
     case PS2_ST_PREP_START:
-      //debug2('p');
+      //uart_putc('p');
       // we waited 100uS for device to notice us, bring DATA low and CLK hi
       PS2_clear_DATA();
       PS2_set_CLK();
       if(!PS2_read_CLK()) {
-        //debug2(':');
         // kb wants to talk to us.
         PS2_set_DATA();
         PS2_enable_IRQ_CLK_Fall();
         PS2_set_state(PS2_ST_GET_BIT);
       } else {
-        //debug2(';');
         // really start bit...
         // now, wait for falling CLK
         PS2_enable_IRQ_CLK_Fall();
@@ -170,9 +163,18 @@ void ps2_host_timer_irq() {
       }
       break;
     default:
-      //debug('#');
-      //debug('a' + PS2_get_state());
+      //uart_putc('#');
+      //uart_putc('a' + PS2_get_state());
       break;
   }
 }
 void ps2_timer_irq(void) __attribute__ ((weak, alias("ps2_host_timer_irq")));
+
+
+void ps2_host_init(uint8_t mode) {
+  ps2_lib_init();
+
+  PS2_enable_IRQ_CLK_Fall();
+}
+void ps2_init(uint8_t mode) __attribute__ ((weak, alias("ps2_host_init")));
+

@@ -21,6 +21,8 @@
 #include <avr/interrupt.h>
 #include <util/delay.h>
 #include "config.h"
+#include "eeprom.h"
+#include "flags.h"
 #include "ps2.h"
 #include "uart.h"
 
@@ -46,23 +48,21 @@
 
 #define KB_CONFIG             1
 
-#define OPT_CRLF              1
-#define OPT_STROBE_LO         2
-#define OPT_BACKSPACE         4
-
 static uint8_t meta;
 static uint8_t config;
 static uint8_t state=POLL_ST_IDLE;
-//static uint8_t led_state=0;
-static uint8_t options;
-
+static uint8_t led_state=0;
+uint8_t globalopts;
+uint16_t baud_rate;
+uint8_t  type_delay;
+uint8_t  type_rate;
 
 void send(uint8_t sh, uint8_t unshifted, uint8_t shifted) {
   uint8_t key=(sh | ((meta & POLL_FLAG_CAPS_LOCK) && unshifted >= 'a' && unshifted <= 'z')?shifted:unshifted);
   // send via RS232
   uart_putc(key);
   DATA_OUT(key);
-  if(options & OPT_STROBE_LO) {
+  if(globalopts & OPT_STROBE_LO) {
     STROBE_LO();
     _delay_us(1);
     STROBE_HI();
@@ -247,17 +247,22 @@ void map_key(uint8_t sh, uint8_t code,uint8_t state) {
         send(sh,'=','+');
         break;
       case PS2_KEY_CAPS_LOCK:
-        if(meta & POLL_FLAG_CAPS_LOCK)
+        if(meta & POLL_FLAG_CAPS_LOCK) {
           meta &= (uint8_t)~POLL_FLAG_CAPS_LOCK;
-        else
+          led_state &= (uint8_t)~PS2_LED_CAPS_LOCK;
+        } else {
           meta |= POLL_FLAG_CAPS_LOCK;
+          led_state |= PS2_LED_CAPS_LOCK;
+        }
+        ps2_putc(PS2_CMD_LEDS);
+        ps2_putc(led_state);
         break;
       case PS2_KEY_RSHIFT:
         meta|=POLL_FLAG_RSHIFT;      
         break;
       case PS2_KEY_ENTER:
         send(sh,13,13);
-        if(options & OPT_CRLF)
+        if(globalopts & OPT_CRLF)
           send(sh,10,10);
         break;
       case PS2_KEY_RBRACKET:
@@ -267,7 +272,7 @@ void map_key(uint8_t sh, uint8_t code,uint8_t state) {
         send(sh,'\\','|');
         break;
       case PS2_KEY_BS:
-        if(options & OPT_BACKSPACE)
+        if(globalopts & OPT_BACKSPACE)
           send(sh,0x09,0x09);
         else
           send(sh,0x7f,0x7f);
@@ -297,45 +302,74 @@ void map_key(uint8_t sh, uint8_t code,uint8_t state) {
 void set_options(uint8_t key) {
   switch(key) {
   case PS2_KEY_L:   // LOW STROBE
-    options |= OPT_STROBE_LO;
+    globalopts |= OPT_STROBE_LO;
     STROBE_HI();
     break;
   case PS2_KEY_H:   // HI STROBE
-    options &= (uint8_t)~OPT_STROBE_LO;
+    globalopts &= (uint8_t)~OPT_STROBE_LO;
     STROBE_LO();
     break;
   case PS2_KEY_1:   // 1200 bps
+    baud_rate = CALC_BPS(1200);
+    uart_set_bps(baud_rate);
     break;
   case PS2_KEY_2:   // 2400 bps
+    baud_rate = CALC_BPS(2400);
+    uart_set_bps(baud_rate);
     break;
   case PS2_KEY_3:   // 4800 bps
+    baud_rate = CALC_BPS(4800);
+    uart_set_bps(baud_rate);
     break;
   case PS2_KEY_4:   // 9600 bps
+    baud_rate = CALC_BPS(9600);
+    uart_set_bps(baud_rate);
     break;
   case PS2_KEY_5:   // 19200 bps
+    baud_rate = CALC_BPS(19200);
+    uart_set_bps(baud_rate);
     break;
   case PS2_KEY_6:   // 38400 bps
+    baud_rate = CALC_BPS(38400);
+    uart_set_bps(baud_rate);
     break;
   case PS2_KEY_BS:   // Use Backspace
-    options |= OPT_BACKSPACE;
+    globalopts |= OPT_BACKSPACE;
     break;
   case PS2_KEY_DELETE | 0x80:   // Use Delete
-    options &= (uint8_t)~OPT_BACKSPACE;
+    globalopts &= (uint8_t)~OPT_BACKSPACE;
     break;
   case PS2_KEY_ENTER:
     if(meta & POLL_FLAG_SHIFT)
-      options |= OPT_CRLF;
+      globalopts |= OPT_CRLF;
     else
-      options &= (uint8_t)~OPT_CRLF;
+      globalopts &= (uint8_t)~OPT_CRLF;
     break;
 
-  case PS2_KEY_EQUALS:   // Increase OSCCAL
+  case PS2_KEY_PERIOD:    // Increase OSCCAL
     OSCCAL++;
     break;
-  case PS2_KEY_MINUS:   // Decrease OSCCON
+  case PS2_KEY_COMMA:     // Decrease OSCCON
     OSCCAL--;
     break;
+  case PS2_KEY_EQUALS:    // Increase RATE
+    if(type_rate < 0x1f)
+      type_rate++;
+    break;
+  case PS2_KEY_MINUS:     // Decrease RATE
+    if(type_rate)
+      type_rate--;
+    break;
+  case PS2_KEY_RBRACKET:  // Increase DELAY
+    if(type_delay < 0x03)
+      type_delay++;
+    break;
+  case PS2_KEY_LBRACKET:  // Decrease DELAY
+    if(type_delay)
+      type_delay--;
+    break;
   case PS2_KEY_W:   // Save Data
+    eeprom_write_config();
     break;
   }
 }
@@ -357,9 +391,13 @@ void parse_key(uint8_t key, uint8_t state) {
     RESET_INACTIVE();
   } else if(CONF_MODE() && (meta&POLL_FLAG_CTRL_ALT)==POLL_FLAG_CTRL_ALT && key==PS2_KEY_BS && state) {
     // CTRL/ALT/BS config mode
-    config ^= KB_CONFIG;  
+    config ^= KB_CONFIG;
+    if(!config) {
+      ps2_putc(PS2_CMD_SET_RATE);
+      ps2_putc(CALC_RATE(type_delay, type_rate));
+    }
+      
   } else if (config) {
-    uart_putc('*');
     if(state) { // set parms on keydown
       set_options(key);
     }
@@ -371,21 +409,24 @@ int main( void ) {
   uint8_t key;
   
   uart_init();
-  // use PortB and C for output data, one nybble each.
+  
+  eeprom_read_config();
+  
   DATA_SETDDR();
   RESET_SETDDR();
   RESET_INACTIVE();
   CONF_MODE_SETDDR();
   STROBE_SETDDR();
   
-  if(options & OPT_STROBE_LO)
+  if(globalopts & OPT_STROBE_LO)
     STROBE_HI();
   else
     STROBE_LO();
+  uart_set_bps(baud_rate);
 
   ps2_init(PS2_MODE_HOST);
+
   sei();
-  
   uart_putc('.');
   for(;;) {
     if(ps2_data_available() != 0) {

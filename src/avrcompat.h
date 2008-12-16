@@ -26,33 +26,60 @@
 #ifndef AVRCOMPAT_H
 #define AVRCOMPAT_H
 
-#if defined __AVR_ATmega8__ 
-#  define SIG_OUTPUT_COMPARE SIG_OUTPUT_COMPARE2
-#  define OCR OCR2
-#  define TCNT  TCNT2
-#  define TCCR  TCCR2
-#  define TCCR_DATA_DELAY (1<<CS22) | (1<<CS21) | (1<<CS20) | (1<<WGM21)
-#  define TCCR_DATA (1<<CS21) | (1<<WGM21)
-#  define TIFR_DATA (1<<OCF2)
-#  define TIMSK_DATA (1<<OCIE2)
+/* PS2 Clock INT */
+#if defined __AVR_ATmega8__ ||  defined __AVR_ATmega16__ || defined __AVR_ATmega32__ || defined __VAR_ATmega162
+#  define CLK_INTDR     MCUCR     // INT Direction Register
+#  define CLK_INTCR     GICR      // INT Control Register
+#  define CLK_ISC0      ISC10
+#  define CLK_ISC1      ISC11
+#  define CLK_INT       INT1
+#  define CLK_INT_vect  INT1_vect
+#else
+#  define CLK_INTDR     EICRA     // INT Direction Register
+#  define CLK_INTCR     EIMSK     // INT Control Register
+#  define CLK_ISC0      ISC10
+#  define CLK_ISC1      ISC11
+#  define CLK_INT       INT1
+#  define CLK_INT_vect  INT1_vect
+#endif
+
+/* PS2 Timer */
+#if defined __AVR_ATmega8__
+
+#  define PS2_TIMER_COMP_vect   TIMER2_COMP_vect
+#  define PS2_OCR               OCR2
+#  define PS2_TCNT              TCNT2
+#  define PS2_TCCR              TCCR2  
+#  define PS2_TCCR_DATA         ((1 << CS21) | (1 << WGM21))
+#  define PS2_TIFR              TIFR
+#  define PS2_TIFR_DATA         (1 << OCF2)
+#  define PS2_TIMSK             TIMSK
+#  define PS2_TIMSK_DATA        (1<<OCIE2)
+
 #elif defined __AVR_ATmega28__ || defined __AVR_ATmega48__ || defined __AVR_ATmega88__
-#  define SIG_OUTPUT_COMPARE SIG_OUTPUT_COMPARE2
-#  define OCR OCR2
-#  define TCNT  TCNT2
-#  define TCCR  TCCR2
-#  define TCCR_DATA_DELAY (1<<CS22) | (1<<CS21) | (1<<CS20) | (1<<WGM21)
-#  define TCCR_DATA (1<<CS21) | (1<<WGM21)
-#  define TIFR_DATA (1<<OCF2)
-#  define TIMSK_DATA (1<<OCIE2)
+
+#  define PS2_TIMER_COMP_vect   TIMER2_COMPA_vect
+#  define PS2_OCR               OCR2A
+#  define PS2_TCNT              TCNT2
+#  define PS2_TCCR              TCCR2A  
+#  define PS2_TCCR_DATA         ((1 << CS21) | (1 << WGM21))
+#  define PS2_TIFR              TIFR2
+#  define PS2_TIFR_DATA         (1 << OCF2A)
+#  define PS2_TIMSK             TIMSK2
+#  define PS2_TIMSK_DATA        (1<<OCIE2A)
+
 #elif defined __AVR_ATmega16__ || defined __AVR_ATmega32__ || defined __VAR_ATmega162
-#  define SIG_OUTPUT_COMPARE SIG_OUTPUT_COMPARE0
-#  define OCR OCR0
-#  define TCNT  TCNT0
-#  define TCCR  TCCR0
-#  define TCCR_DATA_DELAY (1<<CS02) | (1<<CS00) | (1<<WGM01)
-#  define TCCR_DATA (1<<CS01) | (1<<WGM01)
-#  define TIFR_DATA (1<<OCF0)
-#  define TIMSK_DATA (1<<OCIE0)
+
+#  define PS2_TIMER_COMP_vect   TIMER0_COMP_vect
+#  define PS2_OCR               OCR0
+#  define PS2_TCNT              TCNT0
+#  define PS2_TCCR              TCCR0  
+#  define PS2_TCCR_DATA         ((1 << CS01) | (1 << WGM01))
+#  define PS2_TIFR              TIFR
+#  define PS2_TIFR_DATA         (1<<OCF0)
+#  define PS2_TIMSK             TIMSK
+#  define PS2_TIMSK_DATA        (1<<OCIE0)
+
 #endif
 
 
@@ -93,17 +120,23 @@
 #    define USART_UDRE_vect USART0_UDRE_vect
 #  endif
 
-#elif defined __AVR_ATmega32__
-#  define TIMER2_COMPA_vect TIMER2_COMP_vect
-#  define TCCR0B TCCR0
-#  define TCCR2A TCCR2
-#  define TCCR2B TCCR2
-#  define TIFR0  TIFR
-#  define TIMSK2 TIMSK
-#  define OCIE2A OCIE2
-#  define OCR2A  OCR2
+#elif defined __AVR_ATmega28__ || defined __AVR_ATmega48__ || defined __AVR_ATmega88__
+     /* Default is USART0 */
+#    define RXC   RXC0
+#    define RXEN  RXEN0
+#    define TXC   TXC0
+#    define TXEN  TXEN0
+#    define UBRRH UBRR0H
+#    define UBRRL UBRR0L
+#    define UCSRA UCSR0A
+#    define UCSRB UCSR0B
+#    define UCSRC UCSR0C
+#    define UCSZ0 UCSZ00
+#    define UCSZ1 UCSZ01
+#    define UDR   UDR0
+#    define UDRIE UDRIE0
 
-#elif defined __AVR_ATmega8__ || defined __AVR_ATmega28__ || defined __AVR_ATmega48__ || defined __AVR_ATmega88__
+#elif defined __AVR_ATmega8__
 
 #elif defined __AVR_ATmega128__
 #  define UBRRH  UBRR0H
@@ -114,16 +147,6 @@
 #  define UDR    UDR0
 #  define USART_UDRE_vect USART0_UDRE_vect
 #  define USART_RXC_vect USART0_RX_vect
-#  define TIMER2_COMPA_vect TIMER2_COMP_vect
-#  define TCCR0B TCCR0
-#  define TCCR2A TCCR2
-#  define TCCR2B TCCR2
-#  define TIFR0  TIFR
-#  define TIMSK1 TIMSK
-#  define TIMSK2 TIMSK
-#  define OCIE2A OCIE2
-#  define OCR2A  OCR2
-#  define U2X    U2X0 
 
 #else
 #  error Unknown chip!

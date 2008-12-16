@@ -206,15 +206,29 @@ void uart2_puts(char* str) {
 
 #endif
 
+#ifdef DYNAMIC_BPS_RATE
+void uart_set_bps(uint16_t rate) {
+  UBRRH = rate >> 8;
+  UBRRL = rate & 0xff;
+}
+
+#  ifdef CONFIG_UART2
+void uart2_set_bps(uint16_t rate) {
+  UBRR1H = rate >> 8;
+  UBRR1L = rate & 0xff;
+}
+#  endif
+#endif
+
 void uart_init(void) {
   /* Seriellen Port konfigurieren */
 
-  UBRRH = (int)((double)F_CPU/(16.0*CONFIG_UART_BAUDRATE)-1) >> 8;
-  UBRRL = (int)((double)F_CPU/(16.0*CONFIG_UART_BAUDRATE)-1) & 0xff;
+  UBRRH = CALC_BPS(CONFIG_UART_BAUDRATE) >> 8;
+  UBRRL = CALC_BPS(CONFIG_UART_BAUDRATE) & 0xff;
 
   UCSRB = _BV(RXEN) | _BV(TXEN);
   // I really don't like random #ifdefs in the code =(
-#if defined __AVR_ATmega16__ || defined __AVR_ATmega32__ || __AVR_ATmega8__ || defined __AVR_ATmega28__  || defined __AVR_ATmega48__  || defined __AVR_ATmega88__
+#if defined __AVR_ATmega8__ || __AVR_ATmega16__ || defined __AVR_ATmega32__ 
   UCSRC = _BV(URSEL) | _BV(UCSZ1) | _BV(UCSZ0);
 #else
   UCSRC = _BV(UCSZ1) | _BV(UCSZ0);
@@ -227,8 +241,8 @@ void uart_init(void) {
   write_idx = 0;
 
 #ifdef CONFIG_UART2
-  UBRR1H = (int)((double)F_CPU/(16.0*CONFIG_UART2_BAUDRATE)-1) >> 8;
-  UBRR1L = (int)((double)F_CPU/(16.0*CONFIG_UART2_BAUDRATE)-1) & 0xff;
+  UBRR1H = CALC_BPS(CONFIG_UART2_BAUDRATE) >> 8;
+  UBRR1L = CALC_BPS(CONFIG_UART2_BAUDRATE) & 0xff;
 
   UCSR1B = _BV(RXCIE1) | _BV(RXEN1) | _BV(TXEN1);
   UCSR1C = _BV(UCSZ11) | _BV(UCSZ10);

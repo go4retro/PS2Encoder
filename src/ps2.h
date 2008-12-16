@@ -173,9 +173,9 @@
 #define PS2_CMD_BAT_FAILURE   0xfc
 #define PS2_CMD_OVERFLOW      0xff
 
-#define PS2_LED_SCROLL_LOCK   1
-#define PS2_LED_NUM_LOCK      2
-#define PS2_LED_CAPS_LOCK     4
+#define PS2_LED_SCROLL_LOCK   (1 << 0)
+#define PS2_LED_NUM_LOCK      (1 << 1)
+#define PS2_LED_CAPS_LOCK     (1 << 2)
 
 
 
@@ -186,8 +186,14 @@ void ps2_putc(uint8_t data);
 uint8_t ps2_data_available(void);
 
 void ps2_handle_cmds(uint8_t data);
-unsigned int ps2_get_typematic_delay(uint8_t rate);
-unsigned int ps2_get_typematic_period(uint8_t rate);
+uint16_t ps2_get_typematic_delay(uint8_t rate);
+uint16_t ps2_get_typematic_period(uint8_t rate);
+
+// Add 1 and multiply by 250ms to get time
+#define PS2_GET_DELAY(rate)   ((rate & 0x60) >> 5)
+// Multiply by 4.17 to get CPS (or << 2)
+#define PS2_GET_RATE(rate)    ((8 + (rate & 0x07)) * (1 << ((rate & 0x18) >> 3)))   
+#define CALC_RATE(delay,rate) ((rate & 0x1f) + ((delay & 0x03) << 5))
 
 #endif
 
