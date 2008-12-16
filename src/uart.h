@@ -30,10 +30,16 @@
 #define  CALC_BPS(x) ((int)((double)F_CPU / (16.0 * x ) - 1))
 
 #ifdef CONFIG_UART_DEBUG
+#define ENABLE_UART1
+#endif
 
+#if defined ENABLE_UART1 || defined ENABLE_UART2
 #include <avr/pgmspace.h>
-
 void uart_init(void);
+#endif
+
+#if defined ENABLE_UART1 
+
 unsigned char uart_getc(void);
 void uart_putc(char c);
 void uart_puthex(uint8_t num);
@@ -58,27 +64,27 @@ void uart_putcrlf(void);
 
 #endif
 
-#ifdef CONFIG_UART2
+#ifdef ENABLE_UART2
 
 unsigned char uart2_getc(void);
 void uart2_putc(char c);
 void uart2_puts(char* str);
 
 #else
-#define init_serial2()  do {} while(0)
+
 #define uart2_getc()    0
 #define uart2_putc(x)   do {} while(0)
 #define uart2_puts(x)   do {} while(0)
 
 #endif
 
-#if defined CONFIG_UART_DEBUG && defined DYNAMIC_BPS_RATE
+#if defined ENABLE_UART1 && defined DYNAMIC_BPS_RATE
 void uart_set_bps(uint16_t bps);
 #else
 #define uart_set_bps(bps) do {} while(0)
 #endif
 
-#if defined CONFIG_UART_2 && defined DYNAMIC_BPS_RATE
+#if defined ENABLE_UART2 && defined DYNAMIC_BPS_RATE
 void uart2_set_bps(uint16_t bps);
 #else
 #define uart2_set_bps(bps) do {} while(0)

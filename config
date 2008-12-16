@@ -34,7 +34,7 @@ CONFIG_MCU=atmega88
 CONFIG_LINKER_RELAX=n
 
 # MCU frequency in Hz
-CONFIG_MCU_FREQ=14745600
+CONFIG_MCU_FREQ=8000000
 
 # Add a bootloader signature
 CONFIG_BOOTLOADER=n
@@ -42,15 +42,13 @@ CONFIG_BOOTLOADER=n
 # Value of the signature word
 #CONFIG_BOOT_DEVID=0x12345678
 
-
 # Enable UART debugging - requires 24 bytes plus buffer size in RAM
 CONFIG_UART_DEBUG=y
 
+CONFIG_DEADLOCK_ME_HARDER=y
+
 # Baud rate of the UART, not used if CONFIG_UART_DEBUG is disabled
 CONFIG_UART_BAUDRATE=9600
-
-# log2 of the UART buffer size, i.e. 6 for 64, 7 for 128, 8 for 256 etc.
-CONFIG_UART_BUF_SHIFT=6
 
 # Select which hardware to compile for
 # Valid values:

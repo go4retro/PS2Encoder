@@ -32,16 +32,16 @@
 #include "avrcompat.h"
 #include "uart.h"
 
-static uint8_t txbuf[1 << CONFIG_UART_BUF_SHIFT];
+static uint8_t txbuf[1 << UART_TX_BUFFER_SHIFT];
 static volatile uint16_t read_idx;
 static volatile uint16_t write_idx;
 
-#ifdef CONFIG_UART2
-static uint8_t tx2_buf[1 << CONFIG_UART_BUF_SHIFT];
+#ifdef ENABLE_UART2
+static uint8_t tx2_buf[1 << UART2_TX_BUFFER_SHIFT];
 static volatile uint16_t tx2_tail;
 static volatile uint16_t tx2_head;
 
-static uint8_t rx2_buf[1 << CONFIG_UART_BUF_SHIFT];
+static uint8_t rx2_buf[1 << UART2_RX_BUFFER_SHIFT];
 static volatile uint16_t rx2_head;
 static volatile uint16_t rx2_tail;
 
@@ -153,7 +153,7 @@ void uart_putcrlf(void) {
 
 static FILE mystdout = FDEV_SETUP_STREAM(ioputc, NULL, _FDEV_SETUP_WRITE);
 
-#ifdef CONFIG_UART2
+#ifdef ENABLE_UART2
 ISR(USART1_UDRE_vect) {
   if (tx2_tail == tx2_head) return;
   UDR1 = tx2_buf[tx2_tail];
@@ -212,7 +212,7 @@ void uart_set_bps(uint16_t rate) {
   UBRRL = rate & 0xff;
 }
 
-#  ifdef CONFIG_UART2
+#  ifdef ENABLE_UART2
 void uart2_set_bps(uint16_t rate) {
   UBRR1H = rate >> 8;
   UBRR1L = rate & 0xff;
@@ -240,16 +240,16 @@ void uart_init(void) {
   read_idx  = 0;
   write_idx = 0;
 
-#ifdef CONFIG_UART2
-  UBRR1H = CALC_BPS(CONFIG_UART2_BAUDRATE) >> 8;
-  UBRR1L = CALC_BPS(CONFIG_UART2_BAUDRATE) & 0xff;
+#ifdef ENABLE_UART2
+  UBRR1H = CALC_BPS(ENABLE_UART2_BAUDRATE) >> 8;
+  UBRR1L = CALC_BPS(ENABLE_UART2_BAUDRATE) & 0xff;
 
   UCSR1B = _BV(RXCIE1) | _BV(RXEN1) | _BV(TXEN1);
   UCSR1C = _BV(UCSZ11) | _BV(UCSZ10);
 
   tx2_tail  = 0;
   tx2_head = 0;
-//#ifdef CONFIG_UART2_ASYNC_RECV
+//#ifdef ENABLE_UART2_ASYNC_RECV
   rx2_tail  = 0;
   rx2_head = 0;
 //#endif

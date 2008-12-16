@@ -81,9 +81,15 @@ ifeq ($(MCU),atmega16)
 else ifeq ($(MCU),atmega8)
 	BOOTLDRSIZE = 0x0400
 	BINARY_LENGTH = 0x1c00
-	EFUSE = 0xff
-	HFUSE = 0xd2
-	LFUSE = 0xfc
+  EFUSE = 0xff
+  HFUSE = 0xd2
+  LFUSE = 0xfc
+else ifeq ($(MCU),atmega88)
+  BOOTLDRSIZE = 0x0400
+  BINARY_LENGTH = 0x1c00
+  EFUSE = 0x01
+  HFUSE = 0xd7
+  LFUSE = 0xff
 else ifeq ($(MCU),atmega162)
 	BOOTLDRSIZE = 0x0400
 	BINARY_LENGTH = 0x3c00
@@ -93,37 +99,6 @@ else ifeq ($(MCU),atmega162)
 else ifeq ($(MCU),atmega32)
 	BOOTLDRSIZE = 0x0800
 	BINARY_LENGTH = 0x7800
-	EFUSE = 0xff
-	HFUSE = 0xd2
-	LFUSE = 0xfc
-else ifeq ($(MCU),atmega128)
-	BOOTLDRSIZE = 0x1000
-	BINARY_LENGTH = 0x1f000
-	EFUSE = 0xff
-	HFUSE = 0xd2
-	LFUSE = 0xfc
-else ifeq ($(MCU),atmega1281)
-	BOOTLDRSIZE = 0x1000
-	BINARY_LENGTH = 0x1f000
-	BOOTLDRSIZE = 0x0800
-	EFUSE = 0xff
-	HFUSE = 0xd2
-	LFUSE = 0xfc
-else ifeq ($(MCU),atmega2561)
-	BOOTLDRSIZE = 0x1000
-	BINARY_LENGTH = 0x3f000
-	EFUSE = 0xff
-	HFUSE = 0xd2
-	LFUSE = 0xfc
-else ifeq ($(MCU),atmega644)
-	BOOTLDRSIZE = 0x1000
-	BINARY_LENGTH = 0xf000
-	EFUSE = 0xff
-	HFUSE = 0xd2
-	LFUSE = 0xfc
-else ifeq ($(MCU),atmega644p)
-	BOOTLDRSIZE = 0x1000
-	BINARY_LENGTH = 0xf000
 	EFUSE = 0xff
 	HFUSE = 0xd2
 	LFUSE = 0xfc
@@ -352,7 +327,29 @@ AVRDUDE_PORT = lpt1    # programmer connected to serial device
 AVRDUDE_WRITE_FLASH = -U flash:w:$(OBJDIR)/$(TARGET).hex
 #AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(OBJDIR)/$(TARGET).eep
 
-AVRDUDE_WRITE_FUSES = -U efuse:w:$(EFUSE):m -U hfuse:w:$(HFUSE):m -U lfuse:w:$(LFUSE):m
+# Allow fuse overrides from the config file
+ifdef CONFIG_EFUSE
+	EFUSE := $(CONFIG_EFUSE)
+endif
+ifdef CONFIG_HFUSE
+	HFUSE := $(CONFIG_HFUSE)
+endif
+ifdef CONFIG_LFUSE
+	LFUSE := $(CONFIG_LFUSE)
+endif
+
+# Calculate command line arguments for fuses
+AVRDUDE_WRITE_FUSES :=
+ifdef EFUSE
+	AVRDUDE_WRITE_FUSES += -U efuse:w:$(EFUSE):m
+endif
+ifdef HFUSE
+	AVRDUDE_WRITE_FUSES += -U hfuse:w:$(HFUSE):m
+endif
+ifdef LFUSE
+	AVRDUDE_WRITE_FUSES += -U lfuse:w:$(LFUSE):m
+endif
+
 
 # Uncomment the following if you want avrdude's erase cycle counter.
 # Note that this counter needs to be initialized first using -Yn,

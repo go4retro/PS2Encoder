@@ -30,6 +30,7 @@
 /* Global options, variable defined in main.c */
 extern uint8_t globalopts;
 extern uint16_t baud_rate;
+extern uint8_t holdoff;
 
 /* Values for those flags */
 #define OPT_CRLF         (1<<0)

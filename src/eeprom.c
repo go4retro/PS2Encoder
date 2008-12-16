@@ -22,12 +22,13 @@
  * This is the data structure for the contents of the EEPROM.
  */
 static EEMEM struct {
-  uint8_t  pad;
-  uint8_t  checksum;
-  uint16_t structsize;
-  uint8_t  osccal;
-  uint8_t  globalopts;
+  uint8_t   pad;
+  uint8_t   checksum;
+  uint16_t  structsize;
+  uint8_t   osccal;
+  uint8_t   globalopts;
   uint16_t  baud_rate;
+  uint8_t   holdoff;
 } epromconfig;
 
 /**
@@ -45,7 +46,8 @@ void eeprom_read_config(void) {
   globalopts         |= OPT_CRLF;              /* CRLF enabled */
   globalopts         |= OPT_BACKSPACE;         /* Use BS for Backspace */
   baud_rate          = CALC_BPS(9600);         /* 9600 for starters */
-
+  holdoff              = 0;
+  
   size = eeprom_read_word(&epromconfig.structsize);
 
   /* Calculate checksum of EEPROM contents */
@@ -68,6 +70,8 @@ void eeprom_read_config(void) {
   globalopts |= tmp;
 
   baud_rate = eeprom_read_word(&epromconfig.baud_rate);
+  holdoff = eeprom_read_byte(&epromconfig.holdoff);
+
   /* Paranoia: Set EEPROM address register to the dummy entry */
   EEAR = 0;
 }
@@ -88,6 +92,7 @@ void eeprom_write_config(void) {
                     globalopts & (OPT_CRLF | OPT_BACKSPACE |
                                    OPT_STROBE_LO));
   eeprom_write_word(&epromconfig.baud_rate, baud_rate);
+  eeprom_write_byte(&epromconfig.holdoff, holdoff);
 
   /* Calculate checksum over EEPROM contents */
   checksum = 0;
