@@ -1,22 +1,27 @@
-/*
-    Copyright Jim Brain and Brain Innovations, 2004
-  
-    This file is part of C=Key.
+/* PS2Encoder - PS/2 Keyboard Encoder
+   Copyright 2008,2009 Jim Brain <brain@jbrain.com>
 
-    C=Key is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+   This code is a modification of uart functions in sd2iec:
+   Copyright (C) 2007,2008  Ingo Korb <ingo@akana.de>
 
-    C=Key is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; version 2 of the License only.
 
-    You should have received a copy of the GNU General Public License
-    along with C=Key; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+
+   ps2_lib.h: definitions for both host and device PS/2 modes
+
 */
+
 #ifndef PS2_LIB_H
 #define PS2_LIB_H 1
 
@@ -26,9 +31,67 @@
  * After a device sends a byte to host, it has to holdoff for a while
  * before doing anything else.  One KB I tested this is 2.14mS.
  */
- 
+
+/* PS2 Clock INT */
+#if defined __AVR_ATmega8__ ||  defined __AVR_ATmega16__ || defined __AVR_ATmega32__ || defined __VAR_ATmega162
+#  define CLK_INTDR     MCUCR     // INT Direction Register
+#  define CLK_INTCR     GICR      // INT Control Register
+#  define CLK_ISC0      ISC10
+#  define CLK_ISC1      ISC11
+#  define CLK_INT       INT1
+#  define CLK_INT_vect  INT1_vect
+#else
+#  define CLK_INTDR     EICRA     // INT Direction Register
+#  define CLK_INTCR     EIMSK     // INT Control Register
+#  define CLK_ISC0      ISC10
+#  define CLK_ISC1      ISC11
+#  define CLK_INT       INT1
+#  define CLK_INT_vect  INT1_vect
+#endif
+
+/* PS2 Timer */
+#if defined __AVR_ATmega8__
+
+#  define PS2_TIMER_COMP_vect   TIMER2_COMP_vect
+#  define PS2_OCR               OCR2
+#  define PS2_TCNT              TCNT2
+#  define PS2_TCCR              TCCR2
+#  define PS2_TCCR_DATA         ((1 << CS21) | (1 << WGM21))
+#  define PS2_TIFR              TIFR
+#  define PS2_TIFR_DATA         (1 << OCF2)
+#  define PS2_TIMSK             TIMSK
+#  define PS2_TIMSK_DATA        (1<<OCIE2)
+
+#elif defined __AVR_ATmega28__ || defined __AVR_ATmega48__ || defined __AVR_ATmega88__
+
+#  define PS2_TIMER_COMP_vect   TIMER2_COMPA_vect
+#  define PS2_OCR               OCR2A
+#  define PS2_TCNT              TCNT2
+#  define PS2_TCCR              TCCR2A
+#  define PS2_TCCR_DATA         ((1 << CS21) | (1 << WGM21))
+#  define PS2_TIFR              TIFR2
+#  define PS2_TIFR_DATA         (1 << OCF2A)
+#  define PS2_TIMSK             TIMSK2
+#  define PS2_TIMSK_DATA        (1<<OCIE2A)
+
+#elif defined __AVR_ATmega16__ || defined __AVR_ATmega32__ || defined __VAR_ATmega162
+
+#  define PS2_TIMER_COMP_vect   TIMER0_COMP_vect
+#  define PS2_OCR               OCR0
+#  define PS2_TCNT              TCNT0
+#  define PS2_TCCR              TCCR0
+#  define PS2_TCCR_DATA         ((1 << CS01) | (1 << WGM01))
+#  define PS2_TIFR              TIFR
+#  define PS2_TIFR_DATA         (1<<OCF0)
+#  define PS2_TIMSK             TIMSK
+#  define PS2_TIMSK_DATA        (1<<OCIE0)
+
+#endif
+
+
+
 #define PS2_HALF_CYCLE 40 // ~42 uS when all is said and done.
-#define PS2_SEND_HOLDOFF_COUNT  ((uint8_t)(2140/PS2_HALF_CYCLE)) 
+#define PS2_SEND_HOLDOFF_COUNT  ((uint8_t)(2140/PS2_HALF_CYCLE))
 
 #define PS2_ST_IDLE           0
 #define PS2_ST_PREP_START     1
@@ -56,12 +119,12 @@
 #define PS2_ST_WAIT_RESPONSE  22
 
 #define PS2_set_CLK()     do { PS2_PORT_CLK_OUT |= ( PS2_PIN_CLK); PS2_PORT_DDR_CLK &= (uint8_t)~(PS2_PIN_CLK); } while(0)
-#define PS2_clear_CLK()   do { PS2_PORT_DDR_CLK |= (PS2_PIN_CLK); PS2_PORT_CLK_OUT &= (uint8_t)~( PS2_PIN_CLK); } while(0) 
+#define PS2_clear_CLK()   do { PS2_PORT_DDR_CLK |= (PS2_PIN_CLK); PS2_PORT_CLK_OUT &= (uint8_t)~( PS2_PIN_CLK); } while(0)
 #define PS2_read_CLK()    (PS2_PORT_CLK_IN & (PS2_PIN_CLK))
 
 #define PS2_set_DATA()    do { PS2_PORT_DATA_OUT |= ( PS2_PIN_DATA); PS2_PORT_DDR_DATA &= (uint8_t)~(PS2_PIN_DATA); } while(0)
 #define PS2_clear_DATA()  do { PS2_PORT_DDR_DATA |= (PS2_PIN_DATA); PS2_PORT_DATA_OUT &= (uint8_t)~( PS2_PIN_DATA); } while(0)
-#define PS2_read_DATA()   (PS2_PORT_DATA_IN & (PS2_PIN_DATA)) 
+#define PS2_read_DATA()   (PS2_PORT_DATA_IN & (PS2_PIN_DATA))
 
 void PS2_enable_IRQ_CLK_Rise(void);
 void PS2_enable_IRQ_CLK_Fall(void);

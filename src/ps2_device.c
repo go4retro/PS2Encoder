@@ -1,22 +1,27 @@
-/*
-    Copyright Jim Brain and Brain Innovations, 2004
-  
-    This file is part of C=Key.
+/* PS2Encoder - PS/2 Keyboard Encoder
+   Copyright 2008,2009 Jim Brain <brain@jbrain.com>
 
-    C=Key is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+   This code is a modification of uart functions in sd2iec:
+   Copyright (C) 2007,2008  Ingo Korb <ingo@akana.de>
 
-    C=Key is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; version 2 of the License only.
 
-    You should have received a copy of the GNU General Public License
-    along with C=Key; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+
+   ps2_device.c: Internal functions for device PS/2 mode
+
 */
+
 #include <inttypes.h>
 #include <avr/io.h>
 #include <util.delay.h>
@@ -266,14 +271,14 @@ void ps2_dev_timer_irq(void) {
         }
       } else {
         // host aborted send.
-        PS2_dev_host_inhibit(); 
+        PS2_dev_host_inhibit();
       }
       break;
     case PS2_ST_WAIT_ACK:
       PS2_clear_CLK();
       PS2_set_state(PS2_ST_GET_ACK);
       break;
-    case PS2_ST_GET_ACK:  
+    case PS2_ST_GET_ACK:
       PS2_set_CLK();
       PS2_set_DATA();
       // we just need to wait a 50uS or so, to ensure the host saw the CLK go high
@@ -300,6 +305,6 @@ void ps2_dev_timer_irq(void) {
       //uart_puthex(PS2_get_state());
       ps2_timer_irq_off();
       break;
-  } 
+  }
 }
 void ps2_timer_irq(void) __attribute__ ((weak, alias("ps2_dev_timer_irq")));

@@ -1,22 +1,27 @@
-/*
-    Copyright Jim Brain and Brain Innovations, 2004
-  
-    This file is part of C=Key.
+/* PS2Encoder - PS/2 Keyboard Encoder
+   Copyright 2008,2009 Jim Brain <brain@jbrain.com>
 
-    C=Key is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+   This code is a modification of uart functions in sd2iec:
+   Copyright (C) 2007,2008  Ingo Korb <ingo@akana.de>
 
-    C=Key is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; version 2 of the License only.
 
-    You should have received a copy of the GNU General Public License
-    along with C=Key; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+
+   ps2.h: public functions and KEY definitions
+
 */
+
 #ifndef PS2_H
 #define PS2_H 1
 
@@ -192,7 +197,7 @@ uint16_t ps2_get_typematic_period(uint8_t rate);
 // Add 1 and multiply by 250ms to get time
 #define PS2_GET_DELAY(rate)   ((rate & 0x60) >> 5)
 // Multiply by 4.17 to get CPS (or << 2)
-#define PS2_GET_RATE(rate)    ((8 + (rate & 0x07)) * (1 << ((rate & 0x18) >> 3)))   
+#define PS2_GET_RATE(rate)    ((8 + (rate & 0x07)) * (1 << ((rate & 0x18) >> 3)))
 #define CALC_RATE(delay,rate) ((rate & 0x1f) + ((delay & 0x03) << 5))
 
 #endif

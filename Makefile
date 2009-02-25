@@ -2,7 +2,7 @@
 
 # Define version number
 MAJOR = 0
-MINOR = 2
+MINOR = 3
 PATCHLEVEL = 0
 FIX = 0
 
@@ -81,15 +81,14 @@ ifeq ($(MCU),atmega16)
 else ifeq ($(MCU),atmega8)
 	BOOTLDRSIZE = 0x0400
 	BINARY_LENGTH = 0x1c00
-  EFUSE = 0xff
-  HFUSE = 0xd2
-  LFUSE = 0xfc
+  HFUSE = 0xd1
+  LFUSE = 0xe4
 else ifeq ($(MCU),atmega88)
   BOOTLDRSIZE = 0x0400
   BINARY_LENGTH = 0x1c00
-  EFUSE = 0x01
+  EFUSE = 0xe2
   HFUSE = 0xd7
-  LFUSE = 0xff
+  LFUSE = 0xe2
 else ifeq ($(MCU),atmega162)
 	BOOTLDRSIZE = 0x0400
 	BINARY_LENGTH = 0x3c00
@@ -102,6 +101,12 @@ else ifeq ($(MCU),atmega32)
 	EFUSE = 0xff
 	HFUSE = 0xd2
 	LFUSE = 0xfc
+else ifeq ($(MCU),attiny2313)
+  BOOTLDRSIZE = 0x0800
+  BINARY_LENGTH = 0x7800
+  EFUSE = 0xff
+  HFUSE = 0x9f
+  LFUSE = 0xff
 else
 .PHONY: nochip
 nochip:
@@ -174,10 +179,14 @@ CSTANDARD = -std=gnu99
 
 
 # Place -D or -U options here
-CDEFS = -DF_CPU=$(CONFIG_MCU_FREQ)UL -D REV3
+CDEFS = -DF_CPU=$(CONFIG_MCU_FREQ)UL
 
 # Calculate bootloader version
-BOOT_VERSION = 0x$(MAJOR)$(MINOR)$(PATCHLEVEL)$(FIX)
+ifdef PRERELEASE
+BOOT_VERSION := 0
+else
+BOOT_VERSION := 0x$(MAJOR)$(MINOR)$(PATCHLEVEL)$(FIX)
+endif
 
 # Create a version number define
 ifdef PATCHLEVEL
@@ -188,6 +197,10 @@ PROGRAMVERSION := $(MAJOR).$(MINOR).$(PATCHLEVEL)
 endif
 else
 PROGRAMVERSION := $(MAJOR).$(MINOR)
+endif
+
+ifdef PRERELEASE
+PROGRAMVERSION := $(PROGRAMVERSION)$(PRERELEASE)
 endif
 
 LONGVERSION := -$(CONFIG_MCU:atmega%=m%)$(CONFIGSUFFIX)
@@ -227,6 +240,20 @@ CFLAGS += $(CSTANDARD)
 #CFLAGS += -mtiny-stack
 #CFLAGS += -mno-interrupts
 CFLAGS += -I$(OBJDIR)
+
+# these are needed for GCC 4.3.2, which is more aggressive at inlining
+CFLAGS += --param inline-call-cost=2
+CFLAGS += -fno-inline-small-functions
+CFLAGS += -fno-move-loop-invariants
+CFLAGS += -fno-split-wide-types
+CLFAGS += -fno-tree-scev-cprop 
+
+# turn these on to keep the functions in the same order as in the source
+# this is only useful if you're looking at disassembly 
+#CFLAGS += -fno-reorder-blocks
+#CFLAGS += -fno-reorder-blocks-and-partition
+#CFLAGS += -fno-reorder-functions
+#CFLAGS += -fno-toplevel-reorder 
 
 ifeq ($(CONFIG_STACK_TRACKING),y)
   CFLAGS += -finstrument-functions
@@ -303,10 +330,11 @@ LDFLAGS = -Wl,-Map=$(OBJDIR)/$(TARGET).map,--cref
 LDFLAGS += $(EXTMEMOPTS)
 LDFLAGS += $(patsubst %,-L%,$(EXTRALIBDIRS))
 LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
+LDFLAGS += -ffunction-sections -Wl,--gc-sections
 #LDFLAGS  += -Wl,--section-start=.text=$(BOOTLOADERSTARTADR)
 #LDFLAGS += -T linker_script.x
 ifeq ($(CONFIG_LINKER_RELAX),y)
-	LDFLAGS += -Wl,-O9,-relax
+	LDFLAGS += -Wl,-O1,--relax
 endif
 
 

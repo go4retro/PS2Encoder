@@ -1,10 +1,8 @@
-/* sd2iec - SD/MMC to Commodore serial bus interface/controller
+/* PS2Encoder - PS/2 Keyboard Encoder
+   Copyright 2008,2009 Jim Brain <brain@jbrain.com>
+
+   This code is a modification of uart functions in sd2iec:
    Copyright (C) 2007,2008  Ingo Korb <ingo@akana.de>
-
-   Inspiration and low-level SD/MMC access based on code from MMC2IEC
-     by Lars Pontoppidan et al., see sdcard.c|h and config.h.
-
-   FAT filesystem access based on code from ChaN and Jim Brain, see ff.c|h.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -29,18 +27,84 @@
 
 #define  CALC_BPS(x) ((int)((double)F_CPU / (16.0 * x ) - 1))
 
-#ifdef CONFIG_UART_DEBUG
-#define ENABLE_UART1
+#if defined __AVR_ATmega644__ || defined __AVR_ATmega644P__ || defined __AVR_ATmega1281__ || defined __AVR_ATmega2561__
+
+#  ifdef SWAP_UART
+#    define RXC   RXC1
+#    define RXEN  RXEN1
+#    define TXC   TXC1
+#    define TXEN  TXEN1
+#    define UBRRH UBRR1H
+#    define UBRRL UBRR1L
+#    define UCSRA UCSR1A
+#    define UCSRB UCSR1B
+#    define UCSRC UCSR1C
+#    define UCSZ0 UCSZ10
+#    define UCSZ1 UCSZ11
+#    define UDR   UDR1
+#    define UDRIE UDRIE1
+#    define USART_UDRE_vect USART1_UDRE_vect
+#  else
+     /* Default is USART0 */
+#    define RXC   RXC0
+#    define RXEN  RXEN0
+#    define TXC   TXC0
+#    define TXEN  TXEN0
+#    define UBRRH UBRR0H
+#    define UBRRL UBRR0L
+#    define UCSRA UCSR0A
+#    define UCSRB UCSR0B
+#    define UCSRC UCSR0C
+#    define UCSZ0 UCSZ00
+#    define UCSZ1 UCSZ01
+#    define UDR   UDR0
+#    define UDRIE UDRIE0
+#    define USART_UDRE_vect USART0_UDRE_vect
+#  endif
+
+#elif defined __AVR_ATmega28__ || defined __AVR_ATmega48__ || defined __AVR_ATmega88__
+     /* Default is USART0 */
+#    define RXC   RXC0
+#    define RXEN  RXEN0
+#    define TXC   TXC0
+#    define TXEN  TXEN0
+#    define UBRRH UBRR0H
+#    define UBRRL UBRR0L
+#    define UCSRA UCSR0A
+#    define UCSRB UCSR0B
+#    define UCSRC UCSR0C
+#    define UCSZ0 UCSZ00
+#    define UCSZ1 UCSZ01
+#    define UDR   UDR0
+#    define UDRIE UDRIE0
+
+#elif defined __AVR_ATmega8__
+
+#elif defined __AVR_ATmega128__
+#    define UBRRH  UBRR0H
+#    define UBRRL  UBRR0L
+#    define UCSRA  UCSR0A
+#    define UCSRB  UCSR0B
+#    define UCSRC  UCSR0C
+#    define UDR    UDR0
+#    define USART_UDRE_vect USART0_UDRE_vect
+#    define USART_RX_vect USART0_RX_vect
+#    define U2X    U2X0
+
+#else
+#  error Unknown chip!
 #endif
 
 #if defined ENABLE_UART1 || defined ENABLE_UART2
 #include <avr/pgmspace.h>
 void uart_init(void);
+#else
+#define uart_init()  do {} while(0)
 #endif
 
-#if defined ENABLE_UART1 
+#if defined ENABLE_UART1
 
-unsigned char uart_getc(void);
+uint8_t uart_getc(void);
 void uart_putc(char c);
 void uart_puthex(uint8_t num);
 void uart_trace(void *ptr, uint16_t start, uint16_t len);
@@ -53,7 +117,6 @@ void uart_putcrlf(void);
 
 #else
 
-#define uart_init()  do {} while(0)
 #define uart_getc()    0
 #define uart_putc(x)   do {} while(0)
 #define uart_puthex(x) do {} while(0)
@@ -66,7 +129,7 @@ void uart_putcrlf(void);
 
 #ifdef ENABLE_UART2
 
-unsigned char uart2_getc(void);
+uint8_t uart2_getc(void);
 void uart2_putc(char c);
 void uart2_puts(char* str);
 

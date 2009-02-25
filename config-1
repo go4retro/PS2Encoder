@@ -25,17 +25,13 @@
 # This system based on sd2iec Makefile by Ingo Korb
 
 # MCU to compile for
-CONFIG_MCU=atmega88
-CONFIG_LFUSE=0xe2
-CONFIG_HFUSE=0xd7
-CONFIG_EFUSE=0x01
-
+CONFIG_MCU=atmega8
 
 # Use the -relax parameter when linking?
 # Passing -O9 and -relax to the linker saves ~650 bytes of flash,
 # but the option is broken in certain binutils versions.
 # (known troublemakers: binutils 2.17, 2.18 seems fine)
-CONFIG_LINKER_RELAX=n
+CONFIG_LINKER_RELAX=y
 
 # MCU frequency in Hz
 CONFIG_MCU_FREQ=8000000
@@ -46,18 +42,13 @@ CONFIG_BOOTLOADER=n
 # Value of the signature word
 #CONFIG_BOOT_DEVID=0x12345678
 
-
-# Enable UART debugging - requires 24 bytes plus buffer size in RAM
-CONFIG_UART_DEBUG=y
-
-# Baud rate of the UART, not used if CONFIG_UART_DEBUG is disabled
+# Initial Baud rate of the UART
 CONFIG_UART_BAUDRATE=9600
-
-CONFIG_DEADLOCK_ME_HARDER=y
 
 # Select which hardware to compile for
 # Valid values:
 #   1 - v1 board
+#   2 - v3 Board
 CONFIG_HARDWARE_VARIANT=1
 
 # Track the stack size

@@ -1,10 +1,8 @@
-/* sd2iec - SD/MMC to Commodore serial bus interface/controller
+/* PS2Encoder - PS/2 Keyboard Encoder
+   Copyright 2008,2009 Jim Brain <brain@jbrain.com>
+
+   This code is a modification of uart functions in sd2iec:
    Copyright (C) 2007,2008  Ingo Korb <ingo@akana.de>
-
-   Inspiration and low-level SD/MMC access based on code from MMC2IEC
-     by Lars Pontoppidan et al., see sdcard.c|h and config.h.
-
-   FAT filesystem access based on code from ChaN and Jim Brain, see ff.c|h.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -19,7 +17,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-
    uart.c: UART access routines
 
 */
@@ -29,42 +26,49 @@
 #include <avr/pgmspace.h>
 #include <stdio.h>
 #include "config.h"
-#include "avrcompat.h"
 #include "uart.h"
 
-static uint8_t txbuf[1 << UART_TX_BUFFER_SHIFT];
-static volatile uint16_t read_idx;
-static volatile uint16_t write_idx;
+static uint8_t tx1_buf[1 << UART1_TX_BUFFER_SHIFT];
+static volatile uint8_t tx1_tail;
+static volatile uint8_t tx1_head;
+
+#if defined UART1_RX_BUFFER_SHIFT && UART1_RX_BUFFER_SHIFT > 0
+
+static uint8_t rx1_buf[1 << UART1_RX_BUFFER_SHIFT];
+static volatile uint8_t rx1_tail;
+static volatile uint8_t rx1_head;
+
+#endif
 
 #ifdef ENABLE_UART2
+
 static uint8_t tx2_buf[1 << UART2_TX_BUFFER_SHIFT];
-static volatile uint16_t tx2_tail;
-static volatile uint16_t tx2_head;
+static volatile uint8_t tx2_tail;
+static volatile uint8_t tx2_head;
+
+#  if defined UART2_RX_BUFFER_SHIFT && UART2_RX_BUFFER_SHIFT > 0
 
 static uint8_t rx2_buf[1 << UART2_RX_BUFFER_SHIFT];
-static volatile uint16_t rx2_head;
-static volatile uint16_t rx2_tail;
+static volatile uint8_t rx2_head;
+static volatile uint8_t rx2_tail;
+#  endif
 
 #endif
 
 ISR(USART_UDRE_vect) {
-  if (read_idx == write_idx) return;
-  UDR = txbuf[read_idx];
-  read_idx = (read_idx+1) & (sizeof(txbuf)-1);
-  if (read_idx == write_idx)
+  if (tx1_tail == tx1_head) return;
+  UDR = tx1_buf[tx1_tail];
+  tx1_tail = (tx1_tail+1) & (sizeof(tx1_buf)-1);
+  if (tx1_tail == tx1_head)
     UCSRB &= ~ _BV(UDRIE);
 }
 
 void uart_putc(char c) {
-  uint16_t t=(write_idx+1) & (sizeof(txbuf)-1);
-#ifndef CONFIG_DEADLOCK_ME_HARDER // :-)
-  UCSRB &= ~ _BV(UDRIE);   // turn off RS232 irq
-#else
-  while (t == read_idx);   // wait for free space
-#endif
-  txbuf[write_idx] = c;
-  write_idx = t;
-  //if (read_idx == write_idx) PORTD |= _BV(PD7);
+  uint8_t t=(tx1_head+1) & (sizeof(tx1_buf)-1);
+  while (t == tx1_tail);   // wait for free space
+  tx1_buf[tx1_head] = c;
+  tx1_head = t;
+  //if (tx1_tail == tx1_head) PORTD |= _BV(PD7);
   UCSRB |= _BV(UDRIE);
 }
 
@@ -130,12 +134,24 @@ static int ioputc(char c, FILE *stream) {
 }
 
 uint8_t uart_getc(void) {
+#if !defined UART1_RX_BUFFER_SHIFT || UART1_RX_BUFFER_SHIFT == 0
   loop_until_bit_is_set(UCSRA,RXC);
   return UDR;
+#else
+  uint8_t tmptail;
+
+  while ( rx2_head == rx2_tail ) { ; }
+  tmptail = ( rx2_tail + 1 ) & (sizeof(rx2_buf)-1);/* Calculate buffer index */
+
+  rx2_tail = tmptail;                /* Store new index */
+
+  return rx2_buf[tmptail];           /* Return data */
+#endif
 }
 
+
 void uart_flush(void) {
-  while (read_idx != write_idx) ;
+  while (tx1_tail != tx1_head) ;
 }
 
 void uart_puts_P(prog_char *text) {
@@ -163,12 +179,12 @@ ISR(USART1_UDRE_vect) {
 }
 
 ISR(USART1_RX_vect) {
-  unsigned char data;
-  unsigned char tmphead;
-  
+  uint8_t data;
+  uint8_t tmphead;
+
   /* Read the received data */
-  data = UDR1;        
-  
+  data = UDR1;
+
   /* Calculate buffer index */
   tmphead = ( rx2_head + 1 ) & (sizeof(rx2_buf)-1);
   rx2_head = tmphead;      /* Store new index */
@@ -176,27 +192,32 @@ ISR(USART1_RX_vect) {
   if ( tmphead == rx2_tail ) {
     /* ERROR! Receive buffer overflow */
   }
-  
+
   rx2_buf[tmphead] = data; /* Store received data in buffer */
 }
 
 void uart2_putc(char c) {
-  uint16_t t=(tx2_head+1) & (sizeof(tx2_buf)-1);
+  uint8_t t=(tx2_head+1) & (sizeof(tx2_buf)-1);
   UCSR1B &= ~ _BV(UDRIE);   // turn off RS232 irq
   tx2_buf[tx2_head] = c;
   tx2_head = t;
   UCSR1B |= _BV(UDRIE);
 }
 
-unsigned char uart2_getc(void) {
-  unsigned char tmptail;
-  
+#if !defined UART2_RX_BUFFER_SHIFT || UART2_RX_BUFFER_SHIFT == 0
+  loop_until_bit_is_set(UCSR1A,RXC);
+  return UDR;
+#else
+uint8_t uart2_getc(void) {
+  uint8_t tmptail;
+
   while ( rx2_head == rx2_tail ) { ; }
   tmptail = ( rx2_tail + 1 ) & (sizeof(rx2_buf)-1);/* Calculate buffer index */
-  
+
   rx2_tail = tmptail;                /* Store new index */
-  
+
   return rx2_buf[tmptail];           /* Return data */
+#endif
 }
 
 void uart2_puts(char* str) {
@@ -223,12 +244,12 @@ void uart2_set_bps(uint16_t rate) {
 void uart_init(void) {
   /* Seriellen Port konfigurieren */
 
-  UBRRH = CALC_BPS(CONFIG_UART_BAUDRATE) >> 8;
-  UBRRL = CALC_BPS(CONFIG_UART_BAUDRATE) & 0xff;
+  UBRRH = CALC_BPS(UART1_BAUDRATE) >> 8;
+  UBRRL = CALC_BPS(UART1_BAUDRATE) & 0xff;
 
   UCSRB = _BV(RXEN) | _BV(TXEN);
   // I really don't like random #ifdefs in the code =(
-#if defined __AVR_ATmega8__ || __AVR_ATmega16__ || defined __AVR_ATmega32__ 
+#if defined __AVR_ATmega8__ || __AVR_ATmega16__ || defined __AVR_ATmega32__
   UCSRC = _BV(URSEL) | _BV(UCSZ1) | _BV(UCSZ0);
 #else
   UCSRC = _BV(UCSZ1) | _BV(UCSZ0);
@@ -237,8 +258,8 @@ void uart_init(void) {
   stdout = &mystdout;
 
   //UCSRB |= _BV(UDRIE);
-  read_idx  = 0;
-  write_idx = 0;
+  tx1_tail  = 0;
+  tx1_head = 0;
 
 #ifdef ENABLE_UART2
   UBRR1H = CALC_BPS(ENABLE_UART2_BAUDRATE) >> 8;

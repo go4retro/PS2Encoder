@@ -1,22 +1,24 @@
 /*
-    Copyright Jim Brain and Brain Innovations, 2007
-  
-    This file is part of VectorKB.
+    PS2Encoder - PS2 Keyboard to serial/parallel converter
+    Copyright Jim Brain and Brain Innovations, 2009
 
-    C=Key is free software; you can redistribute it and/or modify
+    This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 2 of the License, or
     (at your option) any later version.
 
-    C=Key is distributed in the hope that it will be useful,
+     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with C=Key; if not, write to the Free Software
+    along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    main.c: Main application
 */
+
 #include <inttypes.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
@@ -59,7 +61,12 @@ uint8_t  type_delay;
 uint8_t  type_rate;
 
 void send(uint8_t sh, uint8_t unshifted, uint8_t shifted) {
-  uint8_t key=(sh | ((meta & POLL_FLAG_CAPS_LOCK) && unshifted >= 'a' && unshifted <= 'z')?shifted:unshifted);
+  uint8_t key;
+
+  if(meta & POLL_FLAG_CONTROL) {
+    unshifted = ((unshifted >= 'a' && unshifted <= 'z')?unshifted & 0x1f:unshifted);
+  }
+  key = (sh | ((meta & POLL_FLAG_CAPS_LOCK) && unshifted >= 'a' && unshifted <= 'z')?shifted:unshifted);
   // send via RS232
   uart_putc(key);
   DATA_OUT(key);
@@ -404,7 +411,7 @@ void parse_key(uint8_t key, uint8_t state) {
       //ps2_putc(PS2_CMD_SET_RATE);
       //ps2_putc(CALC_RATE(type_delay, type_rate));
     }
-      
+
   } else if (config) {
     if(state) { // set parms on keydown
       set_options(key);
@@ -413,19 +420,20 @@ void parse_key(uint8_t key, uint8_t state) {
     map_key(meta&POLL_FLAG_SHIFT,key,state);
 }
 
-int main( void ) {
+int main(void) __attribute__((OS_main));
+int main(void) {
   uint8_t key;
-  
+
   uart_init();
-  
+
   eeprom_read_config();
-  
+
   DATA_SETDDR();
   RESET_SETDDR();
   RESET_INACTIVE();
   CONF_MODE_SETDDR();
   STROBE_SETDDR();
-  
+
   if(globalopts & OPT_STROBE_LO)
     STROBE_HI();
   else
@@ -554,7 +562,7 @@ int main( void ) {
           }
           state=POLL_ST_IDLE;
           break;
-        }        
+        }
       }
     }
   }

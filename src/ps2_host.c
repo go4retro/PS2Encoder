@@ -1,26 +1,30 @@
-/*
-    Copyright Jim Brain and Brain Innovations, 2004
-  
-    This file is part of C=Key.
+//* PS2Encoder - PS/2 Keyboard Encoder
+   Copyright 2008,2009 Jim Brain <brain@jbrain.com>
 
-    C=Key is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+   This code is a modification of uart functions in sd2iec:
+   Copyright (C) 2007,2008  Ingo Korb <ingo@akana.de>
 
-    C=Key is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; version 2 of the License only.
 
-    You should have received a copy of the GNU General Public License
-    along with C=Key; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+
+   ps2_host.c: Internal functions for host PS/2 modes
+
 */
+
 #include <inttypes.h>
 #include <avr/io.h>
 #include "config.h"
-#include "avrcompat.h"
 #include "ps2.h"
 #include "ps2_lib.h"
 #include "ps2_host.h"

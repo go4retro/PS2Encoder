@@ -1,10 +1,8 @@
-/* sd2iec - SD/MMC to Commodore serial bus interface/controller
+/* PS2Encoder - PS/2 Keyboard Encoder
+   Copyright 2008,2009 Jim Brain <brain@jbrain.com>
+
+   This code is a modification of uart functions in sd2iec:
    Copyright (C) 2007,2008  Ingo Korb <ingo@akana.de>
-
-   Inspiration and low-level SD/MMC access based on code from MMC2IEC
-     by Lars Pontoppidan et al., see sdcard.c|h and config.h.
-
-   FAT filesystem access based on code from ChaN and Jim Brain, see ff.c|h.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by

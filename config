@@ -31,7 +31,7 @@ CONFIG_MCU=atmega88
 # Passing -O9 and -relax to the linker saves ~650 bytes of flash,
 # but the option is broken in certain binutils versions.
 # (known troublemakers: binutils 2.17, 2.18 seems fine)
-CONFIG_LINKER_RELAX=n
+CONFIG_LINKER_RELAX=y
 
 # MCU frequency in Hz
 CONFIG_MCU_FREQ=8000000
@@ -42,12 +42,7 @@ CONFIG_BOOTLOADER=n
 # Value of the signature word
 #CONFIG_BOOT_DEVID=0x12345678
 
-# Enable UART debugging - requires 24 bytes plus buffer size in RAM
-CONFIG_UART_DEBUG=y
-
-CONFIG_DEADLOCK_ME_HARDER=y
-
-# Baud rate of the UART, not used if CONFIG_UART_DEBUG is disabled
+# Initial Baud rate of the UART
 CONFIG_UART_BAUDRATE=9600
 
 # Select which hardware to compile for

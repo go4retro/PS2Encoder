@@ -1,38 +1,40 @@
-/*
-    Copyright Jim Brain and Brain Innovations, 2004
-  
-    This file is part of C=Key.
+/* PS2Encoder - PS/2 Keyboard Encoder
+   Copyright 2008,2009 Jim Brain <brain@jbrain.com>
 
-    C=Key is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+   This code is a modification of uart functions in sd2iec:
+   Copyright (C) 2007,2008  Ingo Korb <ingo@akana.de>
 
-    C=Key is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; version 2 of the License only.
 
-    You should have received a copy of the GNU General Public License
-    along with C=Key; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+
+   ps2_lib.c: Internal functions for both host and device PS/2 modes
+
 */
-
 // timing information derived from http://panda.cs.ndsu.nodak.edu/~achapwes/PICmicro/PS2/ps2.htm
 
 #include <inttypes.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include "config.h"
-#include "avrcompat.h"
 #include "ps2.h"
 #include "ps2_lib.h"
 #include "uart.h"
 
-static unsigned char rxbuf[1 << PS2_RX_BUFFER_SHIFT];
+static uint8_t rxbuf[1 << PS2_RX_BUFFER_SHIFT];
 static volatile uint8_t rx_head;
 static volatile uint8_t rx_tail;
-static unsigned char txbuf[1 << PS2_TX_BUFFER_SHIFT];
+static uint8_t txbuf[1 << PS2_TX_BUFFER_SHIFT];
 static volatile uint8_t tx_head;
 static volatile uint8_t tx_tail;
 
@@ -78,7 +80,7 @@ void ps2_timer_irq_set(uint8_t us) {
 	// set the count...
 #if F_CPU > 14000000
   // us is uS....  Need to * 14 to get ticks, then divide by 8...
-  // cheat... * 14 / 8 = *2 = <<1  
+  // cheat... * 14 / 8 = *2 = <<1
 	PS2_OCR=(uint8_t)(us<<1);
 #elif F_CPU > 7000000
   PS2_OCR=us;
@@ -118,7 +120,7 @@ uint8_t PS2_get_count(void) {
 
 uint8_t ps2_getc( void ) {
 	uint8_t tmptail;
-	
+
 	while ( rx_head == rx_tail ) {
     // wait for char to arrive, if none in Q
     ;
@@ -133,7 +135,7 @@ uint8_t ps2_getc( void ) {
 void ps2_putc( uint8_t data ) {
 	uint8_t tmphead;
 	// Calculate buffer index
-	tmphead = ( tx_head + 1 ) & PS2_TX_BUFFER_MASK; 
+	tmphead = ( tx_head + 1 ) & PS2_TX_BUFFER_MASK;
 	while ( tmphead == tx_tail ) {
     // Wait for free space in buffer
     ;
@@ -237,7 +239,7 @@ static void ps2_clear_buffers(void) {
 
 void PS2_handle_cmds(uint8_t data) {
   uint8_t i;
-  
+
     switch(data) {
       case PS2_CMD_ACK:
         //ignore.
@@ -249,7 +251,7 @@ void PS2_handle_cmds(uint8_t data) {
       case PS2_CMD_DISABLE:
         // we should disable sending output if we receive this command.
       case PS2_CMD_ENABLE:
-        //clear out KB buffers 
+        //clear out KB buffers
         cli();
         ps2_clear_buffers();
         sei();
@@ -302,9 +304,9 @@ void ps2_lib_init(void) {
   ps2_clear_buffers();
   PS2_LEDs=0;
   PS2_CodeSet=2;
-  
+
   PS2_set_CLK();
   PS2_set_DATA();
-  
+
   PS2_State=PS2_ST_IDLE;
 }
