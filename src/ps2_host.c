@@ -1,4 +1,4 @@
-//* PS2Encoder - PS/2 Keyboard Encoder
+/* PS2Encoder - PS/2 Keyboard Encoder
    Copyright 2008,2009 Jim Brain <brain@jbrain.com>
 
    This code is a modification of uart functions in sd2iec:
@@ -97,6 +97,9 @@ void ps2_host_clk_irq(void) {
       // do we have data to send to keyboard?
       check_for_data();
       break;
+    case PS2_ST_SEND_START:
+      ps2_state = PS2_ST_PREP_BIT;
+      break;
     case PS2_ST_PREP_BIT:
       //uart_putc('b');
       // time to send bits...
@@ -162,7 +165,7 @@ void ps2_host_timer_irq() {
         // really start bit...
         // now, wait for falling CLK
         PS2_enable_IRQ_CLK_Fall();
-        PS2_set_state(PS2_ST_PREP_BIT);
+        PS2_set_state(PS2_ST_SEND_START);
         PS2_read_byte();
       }
       break;

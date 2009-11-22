@@ -24,7 +24,7 @@
 
 #include <inttypes.h>
 #include <avr/io.h>
-#include <util.delay.h>
+#include <util/delay.h>
 #include "config.h"
 #include "avrcompat.h"
 #include "ps2.h"
