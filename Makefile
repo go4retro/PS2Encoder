@@ -2,7 +2,7 @@
 
 # Define version number
 MAJOR = 0
-MINOR = 3
+MINOR = 4
 PATCHLEVEL = 0
 FIX = 0
 
@@ -155,7 +155,7 @@ TARGET = PS2Encoder
 
 # List C source files here. (C dependencies are automatically generated.)
 #SRC = uart.c main.c ps2_lib.c ps2_device.c ps2_host.c ps2_mux.c
-SRC = uart.c main.c ps2_lib.c ps2_host.c eeprom.c
+SRC = uart.c main.c ps2.c ps2_kb.c eeprom.c
 
 # Sample mechanism to add files to SRC line
 #ifeq ($(CONFIG_VARIABLE),4)
