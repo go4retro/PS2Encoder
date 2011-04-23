@@ -1,9 +1,6 @@
 /* PS2Encoder - PS/2 Keyboard Encoder
    Copyright 2008,2009 Jim Brain <brain@jbrain.com>
 
-   This code is a modification of uart functions in sd2iec:
-   Copyright (C) 2007,2008  Ingo Korb <ingo@akana.de>
-
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; version 2 of the License only.
@@ -25,33 +22,10 @@
 #ifndef PS2_H
 #define PS2_H 1
 
-#define PS2_ST_IDLE           0
-#define PS2_ST_PREP_START     1
-#define PS2_ST_SEND_START     2
-#define PS2_ST_PREP_BIT       3
-#define PS2_ST_SEND_BIT       4
-#define PS2_ST_PREP_PARITY    5
-#define PS2_ST_SEND_PARITY    6
-#define PS2_ST_PREP_STOP      7
-#define PS2_ST_SEND_STOP      8
+#define PS2_USE_HOST
+//#define PS2_USE_DEVICE
 
-#define PS2_ST_HOLDOFF        9
-#define PS2_ST_WAIT_START     10
-#define PS2_ST_GET_START      11
-#define PS2_ST_WAIT_BIT       12
-#define PS2_ST_GET_BIT        13
-#define PS2_ST_WAIT_PARITY    14
-#define PS2_ST_GET_PARITY     15
-#define PS2_ST_WAIT_STOP      16
-#define PS2_ST_GET_STOP       17
-#define PS2_ST_GET_ACK        18
-#define PS2_ST_WAIT_ACK       19
-#define PS2_ST_WAIT_ACK2      20
-#define PS2_ST_HOST_INHIBIT   21
-#define PS2_ST_WAIT_RESPONSE  22
-
-#define PS2_MODE_DEVICE       1
-#define PS2_MODE_HOST         2
+typedef enum { PS2_MODE_DEVICE = 1, PS2_MODE_HOST = 2 } ps2mode_t;
 
 #define PS2_KEY_UP            0xf0
 #define PS2_KEY_EXT           0xe0
@@ -182,9 +156,16 @@
 #define PS2_LED_NUM_LOCK      (1 << 1)
 #define PS2_LED_CAPS_LOCK     (1 << 2)
 
+#define PS2_MS_CMD_RESET      PS2_CMD_RESET
+#define PS2_MS_CMD_RESEND     PS2_CMD_RESEND
+#define PS2_MS_CMD_ACK        PS2_CMD_ACK
+#define PS2_MS_CMD_REPORT     0xf4
+#define PS2_MS_CMD_REPORTOFF  0xf5
+#define PS2_MS_CMD_SET_SAMPLE 0xf3
+#define PS2_MS_CMD_READ_ID    PS2_CMD_READ_ID
+#define PS2_MS_CMD_READ_DATA  0xeb
 
-
-void ps2_init(uint8_t mode);
+void ps2_init(ps2mode_t mode);
 
 uint8_t ps2_getc(void);
 void ps2_putc(uint8_t data);

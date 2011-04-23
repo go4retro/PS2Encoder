@@ -449,7 +449,7 @@ int main(void) {
       // kb sent data...
       key=ps2_getc();
       if(key==PS2_CMD_BAT) {
-        state=PS2_ST_IDLE;
+        state=POLL_ST_IDLE;
       } else {
       switch(state) {
         case POLL_ST_IDLE:
