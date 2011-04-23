@@ -1,6 +1,6 @@
 /*
     PS2Encoder - PS2 Keyboard to serial/parallel converter
-    Copyright Jim Brain and Brain Innovations, 2009
+    Copyright Jim Brain and RETRO Innovations, 2008-2011
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -47,6 +47,8 @@
 #define POLL_FLAG_CONTROL     8
 #define POLL_FLAG_CTRL_ALT    (POLL_FLAG_CONTROL | POLL_FLAG_ALT)
 #define POLL_FLAG_CAPS_LOCK   16
+#define POLL_FLAG_NUM_LOCK    32
+#define POLL_FLAG_SCROLL_LOCK 64
 
 #define KB_CONFIG             1
 
@@ -287,6 +289,28 @@ void map_key(uint8_t sh, uint8_t code,uint8_t state) {
         ps2_putc(PS2_CMD_LEDS);
         ps2_putc(led_state);
         break;
+      case PS2_KEY_NUM_LOCK:
+        if(meta & POLL_FLAG_NUM_LOCK) {
+          meta &= (uint8_t)~POLL_FLAG_NUM_LOCK;
+          led_state &= (uint8_t)~PS2_LED_NUM_LOCK;
+        } else {
+          meta |= POLL_FLAG_NUM_LOCK;
+          led_state |= PS2_LED_NUM_LOCK;
+        }
+        ps2_putc(PS2_CMD_LEDS);
+        ps2_putc(led_state);
+        break;
+      case PS2_KEY_SCROLL_LOCK:
+        if(meta & POLL_FLAG_SCROLL_LOCK) {
+          meta &= (uint8_t)~POLL_FLAG_SCROLL_LOCK;
+          led_state &= (uint8_t)~PS2_LED_SCROLL_LOCK;
+        } else {
+          meta |= POLL_FLAG_SCROLL_LOCK;
+          led_state |= PS2_LED_SCROLL_LOCK;
+        }
+        ps2_putc(PS2_CMD_LEDS);
+        ps2_putc(led_state);
+        break;
     }
   }
 }
@@ -308,7 +332,7 @@ void set_options(uint8_t key) {
       if(type_delay < 0x03)
         type_delay++;
       break;
-    case PS2_KEY_O:       // Increase OSCCAL
+    case PS2_KEY_S:       // Increase OSCCAL
       OSCCAL++;
       break;
     }
@@ -328,7 +352,7 @@ void set_options(uint8_t key) {
       if(type_delay)
         type_delay--;
       break;
-    case PS2_KEY_O:       // Decrease OSCCAL
+    case PS2_KEY_S:       // Decrease OSCCAL
       OSCCAL--;
       break;
     case PS2_KEY_L:   // LOW STROBE
@@ -339,29 +363,51 @@ void set_options(uint8_t key) {
       globalopts &= (uint8_t)~OPT_STROBE_LO;
       STROBE_LO();
       break;
-    case PS2_KEY_1:   // 1200 bps
+    case PS2_KEY_0:   // 110 bps
+      baud_rate = CALC_BPS(110);
+      uart_set_bps(baud_rate);
+      break;
+    case PS2_KEY_1:   // 300 bps
+      baud_rate = CALC_BPS(300);
+      uart_set_bps(baud_rate);
+      break;
+    case PS2_KEY_2:   // 600 bps
+      baud_rate = CALC_BPS(600);
+      uart_set_bps(baud_rate);
+      break;
+    case PS2_KEY_3:   // 1200 bps
       baud_rate = CALC_BPS(1200);
       uart_set_bps(baud_rate);
       break;
-    case PS2_KEY_2:   // 2400 bps
+    case PS2_KEY_4:   // 2400 bps
       baud_rate = CALC_BPS(2400);
       uart_set_bps(baud_rate);
       break;
-    case PS2_KEY_3:   // 4800 bps
+    case PS2_KEY_5:   // 4800 bps
       baud_rate = CALC_BPS(4800);
       uart_set_bps(baud_rate);
       break;
-    case PS2_KEY_4:   // 9600 bps
+    case PS2_KEY_6:   // 9600 bps
       baud_rate = CALC_BPS(9600);
       uart_set_bps(baud_rate);
       break;
-    case PS2_KEY_5:   // 19200 bps
+    case PS2_KEY_7:   // 19200 bps
       baud_rate = CALC_BPS(19200);
       uart_set_bps(baud_rate);
       break;
-    case PS2_KEY_6:   // 38400 bps
+    case PS2_KEY_8:   // 38400 bps
       baud_rate = CALC_BPS(38400);
       uart_set_bps(baud_rate);
+      break;
+    case PS2_KEY_9:   // 57600 bps
+      baud_rate = CALC_BPS(57600);
+      uart_set_bps(baud_rate);
+      break;
+    case PS2_KEY_O:   // Odd Parity
+      break;
+    case PS2_KEY_E:   // Even Parity
+      break;
+    case PS2_KEY_N:   // No Parity
       break;
     case PS2_KEY_BS:   // Use Backspace
       globalopts |= OPT_BACKSPACE;
