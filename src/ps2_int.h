@@ -31,7 +31,7 @@
  */
 
 /* PS2 Clock INT */
-#if defined __AVR_ATmega8__ ||  defined __AVR_ATmega16__ || defined __AVR_ATmega32__ || defined __VAR_ATmega162
+#if defined __AVR_ATmega8__ ||  defined __AVR_ATmega16__ || defined __AVR_ATmega32__ || defined __AVR_ATmega162__
 #  define CLK_INTDR     MCUCR     // INT Direction Register
 #  define CLK_INTCR     GICR      // INT Control Register
 #  define CLK_ISC0      ISC10
@@ -72,7 +72,7 @@
 #  define PS2_TIMSK             TIMSK2
 #  define PS2_TIMSK_DATA        _BV(OCIE2A)
 
-#elif defined __AVR_ATmega16__ || defined __AVR_ATmega32__ || defined __VAR_ATmega162
+#elif defined __AVR_ATmega16__ || defined __AVR_ATmega32__ || defined __AVR_ATmega162__
 
 #  define PS2_TIMER_COMP_vect   TIMER0_COMP_vect
 #  define PS2_OCR               OCR0

@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     config.h: User-configurable options to simplify hardware changes and/or
-             reduce the code/ram requirements of the code.
+              reduce the code/ram requirements of the code.
 */
 
 #ifndef CONFIG_H
@@ -25,17 +25,19 @@
 
 #include "autoconf.h"
 
-#define FALSE 0
-#define TRUE  (!FALSE)
+#ifndef TRUE
+#define FALSE             0
+#define TRUE              (!FALSE)
+#endif
 
 // log2 of the PS2 buffer size, i.e. 6 for 64, 7 for 128, 8 for 256 etc.
 #define PS2_RX_BUFFER_SHIFT   3
 #define PS2_TX_BUFFER_SHIFT   3
 
+#define ENABLE_UART1
 // log2 of the UART buffer size, i.e. 6 for 64, 7 for 128, 8 for 256 etc.
 #define UART1_TX_BUFFER_SHIFT  3
 
-#define ENABLE_UART1
 #define UART1_BAUDRATE CONFIG_UART_BAUDRATE
 #define DYNAMIC_BPS_RATE
 
@@ -56,15 +58,19 @@
 // this must return zero for config
 #  define CONF_MODE()         (!(PIND & _BV(PD5)))
 
-#  define PS2_PORT_DDR_CLK    DDRD
-#  define PS2_PORT_CLK_OUT    PORTD
-#  define PS2_PORT_CLK_IN     PIND
-#  define PS2_PIN_CLK         _BV(PD3)
-#  define PS2_PORT_DDR_DATA   DDRD
-#  define PS2_PORT_DATA_OUT   PORTD
-#  define PS2_PORT_DATA_IN    PIND
-#  define PS2_PIN_DATA        _BV(PD2)
 
 #endif
 
-#endif
+#define PS2_USE_HOST
+//#define PS2_USE_DEVICE
+
+#define PS2_PORT_DDR_CLK    DDRD
+#define PS2_PORT_CLK_OUT    PORTD
+#define PS2_PORT_CLK_IN     PIND
+#define PS2_PIN_CLK         _BV(PD3)
+#define PS2_PORT_DDR_DATA   DDRD
+#define PS2_PORT_DATA_OUT   PORTD
+#define PS2_PORT_DATA_IN    PIND
+#define PS2_PIN_DATA        _BV(PD2)
+
+#endif /*CONFIG_H_*/

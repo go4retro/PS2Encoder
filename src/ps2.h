@@ -23,9 +23,6 @@
 #ifndef PS2_H
 #define PS2_H 1
 
-#define PS2_USE_HOST
-//#define PS2_USE_DEVICE
-
 typedef enum { PS2_MODE_DEVICE = 1, PS2_MODE_HOST = 2 } ps2mode_t;
 
 #define PS2_KEY_UP            0xf0

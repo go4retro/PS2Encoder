@@ -27,7 +27,7 @@
 
 #define  CALC_BPS(x) ((int)((double)F_CPU / (16.0 * x ) - 1))
 
-#if defined __AVR_ATmega644__ || defined __AVR_ATmega644P__ || defined __AVR_ATmega1281__ || defined __AVR_ATmega2561__
+#if defined __AVR_ATmega162__ || defined __AVR_ATmega644__ || defined __AVR_ATmega644P__ || defined __AVR_ATmega1281__ || defined __AVR_ATmega2561__
 
 #  ifdef SWAP_UART
 #    define RXC   RXC1
@@ -78,7 +78,7 @@
 #    define UDR   UDR0
 #    define UDRIE UDRIE0
 
-#elif defined __AVR_ATmega8__
+#elif defined __AVR_ATmega16__ || defined __AVR_ATmega8__
 
 #elif defined __AVR_ATmega128__
 #    define UBRRH  UBRR0H
@@ -94,6 +94,13 @@
 #else
 #  error Unknown chip!
 #endif
+
+#if defined __AVR_ATmega8__ || __AVR_ATmega16__ || defined __AVR_ATmega32__
+#  define UART1_MODE_SETUP()  do { UCSRC = _BV(URSEL) | _BV(UCSZ1) | _BV(UCSZ0); } while(0)
+#  else
+#  define UART1_MODE_SETUP()  do { UCSRC = _BV(UCSZ1) | _BV(UCSZ0); } while(0)
+#endif
+
 
 #if defined ENABLE_UART1 || defined ENABLE_UART2
 #include <avr/pgmspace.h>
