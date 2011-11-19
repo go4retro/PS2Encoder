@@ -62,7 +62,7 @@
 #    define USART_UDRE_vect USART0_UDRE_vect
 #  endif
 
-#elif defined __AVR_ATmega28__ || defined __AVR_ATmega48__ || defined __AVR_ATmega88__
+#elif defined __AVR_ATmega28__ || defined __AVR_ATmega48__ || defined __AVR_ATmega88__ || defined __AVR_ATmega168__
      /* Default is USART0 */
 #    define RXC   RXC0
 #    define RXEN  RXEN0

@@ -67,7 +67,7 @@
 #  define PS2_TIMSK             TIMSK
 #  define PS2_TIMSK_DATA        _BV(OCIE2)
 
-#elif defined __AVR_ATmega28__ || defined __AVR_ATmega48__ || defined __AVR_ATmega88__
+#elif defined __AVR_ATmega28__ || defined __AVR_ATmega48__ || defined __AVR_ATmega88__ || defined __AVR_ATmega168__
 
 #  define PS2_TIMER_COMP_vect   TIMER2_COMPA_vect
 #  define PS2_OCR               OCR2A
@@ -91,6 +91,8 @@
 #  define PS2_TIMSK             TIMSK
 #  define PS2_TIMSK_DATA        _BV(OCIE0)
 
+#else
+#  error Unknown chip!
 #endif
 
 

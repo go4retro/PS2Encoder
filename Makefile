@@ -6,7 +6,7 @@ MINOR = 4
 PATCHLEVEL = 0
 FIX = 0
 
-# Forces bootloader version to 0, comment out for release
+# Forces bootloader version to 0, comment out or leave empty for release
 #PRERELEASE =
 
 #----------------------------------------------------------------------------
@@ -41,7 +41,7 @@ FIX = 0
 # make program = Download the hex file to the device, using avrdude.
 #                Please customize the avrdude settings below first!
 #
-# make debug = Start either simulavr or avarice as specified for debugging, 
+# make debug = Start either simulavr or avarice as specified for debugging,
 #              with avr-gdb or avr-insight as the front end for debugging.
 #
 # make filename.s = Just compile filename.c into the assembler code only.
@@ -86,8 +86,13 @@ else ifeq ($(MCU),atmega8)
   LFUSE = 0xe4
 else ifeq ($(MCU),atmega88)
   BINARY_LENGTH = 0x1c00
-  EFUSE = 0xe2
-  HFUSE = 0xd7
+  EFUSE = 0xf9
+  HFUSE = 0xdc
+  LFUSE = 0xe2
+else ifeq ($(MCU),atmega168)
+  BINARY_LENGTH = 0x3c00
+  EFUSE = 0xf9
+  HFUSE = 0xdc
   LFUSE = 0xe2
 else ifeq ($(MCU),atmega162)
 	BINARY_LENGTH = 0x3c00
@@ -100,31 +105,31 @@ else ifeq ($(MCU),atmega32)
 	HFUSE = 0xd2
 	LFUSE = 0xfc
 else ifeq ($(MCU),atmega128)
-  BOOTLDRSIZE = 0x1000
-  BINARY_LENGTH = 0x1f000
-  EFUSE = 0xff
-  HFUSE = 0xd2
-  LFUSE = 0xfc
+	BOOTLDRSIZE = 0x1000
+	BINARY_LENGTH = 0x1f000
+	EFUSE = 0xff
+	HFUSE = 0xd2
+	LFUSE = 0xfc
 else ifeq ($(MCU),atmega1281)
-  BINARY_LENGTH = 0x1f000
-  EFUSE = 0xff
-  HFUSE = 0xd2
-  LFUSE = 0xfc
+	BINARY_LENGTH = 0x1f000
+	EFUSE = 0xff
+	HFUSE = 0xd2
+	LFUSE = 0xfc
 else ifeq ($(MCU),atmega2561)
-  BINARY_LENGTH = 0x3f000
-  EFUSE = 0xfd
-  HFUSE = 0x93
-  LFUSE = 0xef
+	BINARY_LENGTH = 0x3f000
+	EFUSE = 0xfd
+	HFUSE = 0x93
+	LFUSE = 0xef
 else ifeq ($(MCU),atmega644)
-  BINARY_LENGTH = 0xf000
-  EFUSE = 0xfd
-  HFUSE = 0x91
-  LFUSE = 0xef
+	BINARY_LENGTH = 0xf000
+	EFUSE = 0xfd
+	HFUSE = 0x91
+	LFUSE = 0xef
 else ifeq ($(MCU),atmega644p)
-  BINARY_LENGTH = 0xf000
-  EFUSE = 0xfd
-  HFUSE = 0x91
-  LFUSE = 0xef
+	BINARY_LENGTH = 0xf000
+	EFUSE = 0xfd
+	HFUSE = 0x91
+	LFUSE = 0xef
 else ifeq ($(MCU),attiny2313)
   BINARY_LENGTH = 0x7800
   EFUSE = 0xff
@@ -404,13 +409,13 @@ AVRDUDE_WRITE_FLASH = -U flash:w:$(OBJDIR)/$(TARGET).hex
 
 # Allow fuse overrides from the config file
 ifdef CONFIG_EFUSE
-  EFUSE := CONFIG_EFUSE
+	EFUSE := $(CONFIG_EFUSE)
 endif
 ifdef CONFIG_HFUSE
-  HFUSE := CONFIG_HFUSE
+	HFUSE := $(CONFIG_HFUSE)
 endif
 ifdef CONFIG_LFUSE
-  LFUSE := CONFIG_LFUSE
+	LFUSE := $(CONFIG_LFUSE)
 endif
 
 # Calculate command line arguments for fuses
@@ -511,7 +516,7 @@ ALL_ASFLAGS = -mmcu=$(MCU) -I$(SRCDIR) -x assembler-with-cpp $(ASFLAGS) $(CDEFS)
 # Default target.
 all: build
 
-build: elf bin hex
+build: elf hex bin eep lss 
 	$(E) "  SIZE   $(OBJDIR)/$(TARGET).elf"
 	$(Q)$(ELFSIZE)|grep -v debug
 
@@ -543,6 +548,9 @@ program: $(OBJDIR)/$(TARGET).hex $(OBJDIR)/$(TARGET).eep
 # Set fuses of the device
 fuses: $(CONFIG)
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FUSES)
+
+progall: $(OBJDIR)/$(TARGET).hex $(OBJDIR)/$(TARGET).eep $(CONFIG)
+	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH)  $(AVRDUDE_WRITE_EEPROM) $(AVRDUDE_WRITE_FUSES)
 
 # Generate avr-gdb config/init file which does the following:
 #     define the reset signal, load the target file, connect to target, and set
@@ -611,8 +619,6 @@ else
 $(OBJDIR)/%.bin: $(OBJDIR)/%.elf
 	$(E) "  BIN    $@"
 	$(Q)$(OBJCOPY) -O binary -R .eeprom $< $@
-endif
-
 
 $(OBJDIR)/%.hex: $(OBJDIR)/%.elf
 	$(E) "  HEX    $@"
@@ -663,12 +669,12 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.S | $(OBJDIR) $(OBJDIR)/autoconf.h
 # Create preprocessed source for use in sending a bug report.
 $(OBJDIR)/%.i : $(SRCDIR)/%.c | $(OBJDIR) $(OBJDIR)/autoconf.h
 	$(E) "  CC     $<"
-	$(Q)$(CC) -E -mmcu=$(MCU) -I$(SRCDIR) $(CFLAGS) $< -o $@ 
+	$(Q)$(CC) -E -mmcu=$(MCU) -I$(SRCDIR) $(CFLAGS) $< -o $@
 
 # Create the output directory
 $(OBJDIR):
 	$(E) "  MKDIR  $(OBJDIR)"
-	$(Q)mkdir $(OBJDIR)
+	-$(Q)mkdir -p $(OBJDIR)
 
 # Target: clean project.
 clean: begin clean_list end
@@ -692,7 +698,7 @@ clean_list :
 	$(Q)$(REMOVE) .dep/*
 	$(Q)$(REMOVE) -rf codedoc
 	$(Q)$(REMOVE) -rf doxyinput
-	-$(Q)rmdir $(OBJDIR)
+	-$(Q)rmdir --ignore-fail-on-non-empty -p $(OBJDIR)
 
 # Include the dependency files.
 -include $(shell mkdir .dep 2>/dev/null) $(wildcard .dep/*)

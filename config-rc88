@@ -54,3 +54,7 @@ CONFIG_HARDWARE_VARIANT=1
 # Track the stack size
 # Warning: This option increases the code size a lot.
 CONFIG_STACK_TRACKING=n
+
+EFUSE=0xf9
+HFUSE=0xdc
+LFUSE=0xe2
