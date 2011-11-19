@@ -55,7 +55,7 @@ static void ps2_enable_clk_rise(void) {
 
 static void ps2_enable_clk_fall(void) {
   // falling edge
-  CLK_INTDR = (CLK_INTDR & (uint8_t)~(_BV(CLK_ISC1) | _BV(CLK_ISC0))) | _BV(ISC11);
+  CLK_INTDR = (CLK_INTDR & (uint8_t)~(_BV(CLK_ISC1) | _BV(CLK_ISC0))) | _BV(CLK_ISC1);
   // turn on
   CLK_INTCR |= _BV(CLK_INT);
 }
