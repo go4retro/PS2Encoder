@@ -67,10 +67,10 @@
 #define PS2_PORT_DDR_CLK    DDRD
 #define PS2_PORT_CLK_OUT    PORTD
 #define PS2_PORT_CLK_IN     PIND
-#define PS2_PIN_CLK         _BV(PD3)
+#define PS2_PIN_CLK         _BV(PD2)
 #define PS2_PORT_DDR_DATA   DDRD
 #define PS2_PORT_DATA_OUT   PORTD
 #define PS2_PORT_DATA_IN    PIND
-#define PS2_PIN_DATA        _BV(PD2)
+#define PS2_PIN_DATA        _BV(PD3)
 
 #endif /*CONFIG_H_*/
