@@ -43,7 +43,10 @@ static EEMEM struct {
   uint16_t  structsize;
   uint8_t   osccal;
   uint8_t   globalopts;
-  uint16_t  baud_rate;
+  uint16_t  uart_bps;
+  uint8_t   uart_length;
+  uint8_t   uart_parity;
+  uint8_t   uart_stop;
   uint8_t   holdoff;
 } epromconfig;
 
@@ -61,8 +64,11 @@ void eeprom_read_config(void) {
   /* Set default values */
   globalopts         |= OPT_CRLF;              /* CRLF enabled */
   globalopts         |= OPT_BACKSPACE;         /* Use BS for Backspace */
-  baud_rate          = CALC_BPS(9600);         /* 9600 for starters */
-  holdoff              = 0;
+  uart_bps           = CALC_BPS(9600);         /* 9600 for starters */
+  uart_length        = LENGTH_8;
+  uart_parity        = PARITY_NONE;
+  uart_stop          = STOP_1;
+  holdoff            = 0;
 
   size = eeprom_read_word(&epromconfig.structsize);
 
@@ -85,7 +91,11 @@ void eeprom_read_config(void) {
                             OPT_STROBE_LO);
   globalopts |= tmp;
 
-  baud_rate = eeprom_read_word(&epromconfig.baud_rate);
+  uart_bps    = eeprom_read_word(&epromconfig.uart_bps);
+  uart_length = (uartlen_t)eeprom_read_byte(&epromconfig.uart_length);
+  uart_parity = (uartpar_t)eeprom_read_byte(&epromconfig.uart_parity);
+  uart_stop   = (uartstop_t)eeprom_read_byte(&epromconfig.uart_stop);
+
   holdoff = eeprom_read_byte(&epromconfig.holdoff);
 
   /* Paranoia: Set EEPROM address register to the dummy entry */
@@ -107,7 +117,10 @@ void eeprom_write_config(void) {
   eeprom_write_byte(&epromconfig.globalopts,
                     globalopts & (OPT_CRLF | OPT_BACKSPACE |
                                    OPT_STROBE_LO));
-  eeprom_write_word(&epromconfig.baud_rate, baud_rate);
+  eeprom_write_word(&epromconfig.uart_bps, uart_bps);
+  eeprom_write_byte(&epromconfig.uart_length, uart_length);
+  eeprom_write_byte(&epromconfig.uart_parity, uart_parity);
+  eeprom_write_byte(&epromconfig.uart_stop, uart_stop);
   eeprom_write_byte(&epromconfig.holdoff, holdoff);
 
   /* Calculate checksum over EEPROM contents */

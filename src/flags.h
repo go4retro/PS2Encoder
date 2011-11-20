@@ -23,10 +23,15 @@
 #ifndef FLAGS_H
 #define FLAGS_H
 
+#include "uart.h"
+
 /* Global options, variable defined in main.c */
 extern uint8_t globalopts;
-extern uint16_t baud_rate;
 extern uint8_t holdoff;
+extern uint16_t uart_bps;
+extern uartlen_t uart_length;
+extern uartstop_t uart_stop;
+extern uartpar_t uart_parity;
 
 /* Values for those flags */
 #define OPT_CRLF         (1<<0)
