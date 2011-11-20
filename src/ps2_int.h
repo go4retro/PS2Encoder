@@ -48,10 +48,17 @@
 #else
 #  define CLK_INTDR     EICRA     // INT Direction Register
 #  define CLK_INTCR     EIMSK     // INT Control Register
-#  define CLK_ISC0      ISC10
-#  define CLK_ISC1      ISC11
-#  define CLK_INT       INT1
-#  define CLK_INT_vect  INT1_vect
+#  if PS2_PIN_CLK == _BV(PD3)
+#    define CLK_ISC0      ISC10
+#    define CLK_ISC1      ISC11
+#    define CLK_INT       INT1
+#    define CLK_INT_vect  INT1_vect
+#  else
+#    define CLK_ISC0      ISC00
+#    define CLK_ISC1      ISC01
+#    define CLK_INT       INT0
+#    define CLK_INT_vect  INT0_vect
+#  endif
 #endif
 
 /* PS2 Timer */
