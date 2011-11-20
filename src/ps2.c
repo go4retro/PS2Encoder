@@ -25,9 +25,9 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
-#include "ps2.h"
 #include "ps2_int.h"
 #include "uart.h"
+#include "ps2.h"
 
 static uint8_t rxbuf[1 << PS2_RX_BUFFER_SHIFT];
 static volatile uint8_t rx_head;
@@ -69,8 +69,8 @@ static void ps2_disable_clk(void) {
 static void ps2_enable_timer(uint8_t us) {
   // clear flag.
   PS2_TIFR |= PS2_TIFR_DATA;
-  // clear TCNT0;
-  PS2_TCNT=0;
+  // clear TCNT;
+  PS2_TCNT = 0;
   // set the count...
 #if F_CPU > 14000000
   // us is uS....  Need to * 14 to get ticks, then divide by 8...
@@ -118,7 +118,6 @@ static uint8_t ps2_data_to_send(void) {
   return ( tx_head != tx_tail );
 }
 
-
 static void ps2_write_bit(void) {
   ps2_state=PS2_ST_PREP_BIT;
   // set DATA..
@@ -137,7 +136,6 @@ static void ps2_write_bit(void) {
   // valid data now.
 }
 
-
 static void ps2_read_bit(void) {
   ps2_byte = ps2_byte >> 1;
   ps2_bit_count++;
@@ -147,7 +145,6 @@ static void ps2_read_bit(void) {
   }
 }
 
-
 static void ps2_write_parity(void) {
   if((ps2_parity & 1) == 1) {
     PS2_CLEAR_DATA();
@@ -156,13 +153,11 @@ static void ps2_write_parity(void) {
   }
 }
 
-
 static void ps2_clear_counters(void) {
   ps2_byte = 0;
   ps2_bit_count = 0;
   ps2_parity = 0;
 }
-
 
 void ps2_clear_buffers(void) {
   tx_head = 0;
@@ -170,7 +165,6 @@ void ps2_clear_buffers(void) {
   rx_head = 0;
   rx_tail = 0;
 }
-
 
 #ifdef PS2_USE_DEVICE
 static void ps2_device_trigger_send(void) {
@@ -209,7 +203,6 @@ static void ps2_host_check_for_data(void) {
     ps2_enable_clk_fall();
   }
 }
-
 
 void ps2_host_timer_irq(void) __attribute__((always_inline));
 void ps2_host_timer_irq(void) {
@@ -324,7 +317,6 @@ void ps2_host_clk_irq(void) {
       break;
   }
 }
-
 
 static void ps2_host_init(void) {
   ps2_enable_clk_fall();
@@ -564,15 +556,11 @@ static void ps2_device_init(void) {
   _delay_ms(600);
   ps2_putc(PS2_CMD_BAT);
 }
-
-
 #endif
-
 
 ISR(PS2_TIMER_COMP_vect) {
   PS2_CALL(ps2_device_timer_irq(),ps2_host_timer_irq());
 }
-
 
 ISR(CLK_INT_vect) {
   PS2_CALL(ps2_device_clk_irq(),ps2_host_clk_irq());
@@ -616,11 +604,9 @@ void ps2_putc( uint8_t data ) {
   sei();
 }
 
-
 uint8_t ps2_data_available( void ) {
   return ( rx_head != rx_tail ); /* Return 0 (FALSE) if the receive buffer is empty */
 }
-
 
 void ps2_init(ps2mode_t mode) {
   // set prescaler to System Clock/8
