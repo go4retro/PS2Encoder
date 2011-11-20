@@ -27,104 +27,114 @@
 
 #define  CALC_BPS(x) ((int)((double)F_CPU / (16.0 * x ) - 1))
 
-#if defined __AVR_ATmega162__ || defined __AVR_ATmega644__ || defined __AVR_ATmega644P__ || defined __AVR_ATmega1281__ || defined __AVR_ATmega2561__
+#if defined __AVR_ATmega162__ || defined __AVR_ATmega644__ || defined __AVR_ATmega644P__ || defined __AVR_ATmega1281__ || defined __AVR_ATmega2561__ || __AVR_ATmega128__
+
+#  define UCSZ0 UCSZ00
+#  define UCSZ1 UCSZ01
+#  define UPM0  UPM00
+#  define UPM1  UPM01
+#  define USBS  USBS0
 
 #  ifdef SWAP_UART
-#    define RXC   RXC1
-#    define RXEN  RXEN1
-#    define TXC   TXC1
-#    define TXEN  TXEN1
-#    define UBRRH UBRR1H
-#    define UBRRL UBRR1L
-#    define UCSRA UCSR1A
-#    define UCSRB UCSR1B
-#    define UCSRC UCSR1C
-#    define UCSZ0 UCSZ10
-#    define UCSZ1 UCSZ11
-#    define UDR   UDR1
-#    define UDRIE UDRIE1
-#    define USART_UDRE_vect USART1_UDRE_vect
+#    define RXCA   RXC1
+#    define RXENA  RXEN1
+#    define TXCA   TXC1
+#    define TXENA  TXEN1
+#    define UBRRAH UBRR1H
+#    define UBRRAL UBRR1L
+#    define UCSRAA UCSR1A
+#    define UCSRAB UCSR1B
+#    define UCSRAC UCSR1C
+#    define UDRA   UDR1
+#    define UDRIEA UDRIE1
+#    define U2XA   U2X1
+#    define USARTA_UDRE_vect USART1_UDRE_vect
+#    define USARTA_RX_vect USART1_RX_vect
+
 #  else
      /* Default is USART0 */
-#    define RXC   RXC0
-#    define RXEN  RXEN0
-#    define TXC   TXC0
-#    define TXEN  TXEN0
-#    define UBRRH UBRR0H
-#    define UBRRL UBRR0L
-#    define UCSRA UCSR0A
-#    define UCSRB UCSR0B
-#    define UCSRC UCSR0C
-#    define UCSZ0 UCSZ00
-#    define UCSZ1 UCSZ01
-#    define UDR   UDR0
-#    define UDRIE UDRIE0
-#    define USART_UDRE_vect USART0_UDRE_vect
+#    define RXCA   RXC0
+#    define RXENA  RXEN0
+#    define TXCA   TXC0
+#    define TXENA  TXEN0
+#    define UBRRAH UBRR0H
+#    define UBRRAL UBRR0L
+#    define UCSRAA UCSR0A
+#    define UCSRAB UCSR0B
+#    define UCSRAC UCSR0C
+#    define UDRA   UDR0
+#    define UDRIEA UDRIE0
+#    define U2XA   U2X0
+#    define USARTA_UDRE_vect USART0_UDRE_vect
+#    define USARTA_RX_vect USART0_RX_vect
 #  endif
 
 #elif defined __AVR_ATmega28__ || defined __AVR_ATmega48__ || defined __AVR_ATmega88__ || defined __AVR_ATmega168__
-     /* Default is USART0 */
-#    define RXC   RXC0
-#    define RXEN  RXEN0
-#    define TXC   TXC0
-#    define TXEN  TXEN0
-#    define UBRRH UBRR0H
-#    define UBRRL UBRR0L
-#    define UCSRA UCSR0A
-#    define UCSRB UCSR0B
-#    define UCSRC UCSR0C
-#    define UCSZ0 UCSZ00
-#    define UCSZ1 UCSZ01
-#    define UDR   UDR0
-#    define UDRIE UDRIE0
+#  define UCSZ0 UCSZ00
+#  define UCSZ1 UCSZ01
+#  define UPM0  UPM00
+#  define UPM1  UPM01
+#  define USBS  USBS0
+
+#  define UDRA  UDR0
+#  define RXCA   RXC0
+#  define RXENA  RXEN0
+#  define TXCA   TXC0
+#  define TXENA  TXEN0
+#  define UBRRAH UBRR0H
+#  define UBRRAL UBRR0L
+#  define UCSRAA UCSR0A
+#  define UCSRAB UCSR0B
+#  define UCSRAC UCSR0C
+#  define UDRIEA UDRIE0
+#  define U2XA   U2X0
+#  define USARTA_UDRE_vect USART_UDRE_vect
+#  define USARTA_RX_vect USART_RX_vect
 
 #elif defined __AVR_ATmega16__ || defined __AVR_ATmega8__
-
-#    define UCSZ00  UCSZ0
-#    define UCSZ01  UCSZ1
-#    define UPM00   UPM0
-#    define UPM01   UPM1
-#    define USBS0   USBS
-#    define UCSR0C  UCSRC
-
-#elif defined __AVR_ATmega128__
-#    define UBRRH  UBRR0H
-#    define UBRRL  UBRR0L
-#    define UCSRA  UCSR0A
-#    define UCSRB  UCSR0B
-#    define UCSRC  UCSR0C
-#    define UDR    UDR0
-#    define USART_UDRE_vect USART0_UDRE_vect
-#    define USART_RX_vect USART0_RX_vect
-#    define U2X    U2X0
+// only 1 uart
+#    define UDRA   UDR
+#    define RXCA   RXC
+#    define RXENA  RXEN
+#    define TXCA   TXC
+#    define TXENA  TXEN
+#    define UBRRAH UBRRH
+#    define UBRRAL UBRRL
+#    define UCSRAA UCSRA
+#    define UCSRAB UCSRB
+#    define UCSRAC UCSRC
+#    define UDRIEA UDRIE
+#    define U2XA   U2X
+#    define USARTA_UDRE_vect USART_UDRE_vect
+#    define USARTA_RX_vect USART_RX_vect
 
 #else
 #  error Unknown chip!
 #endif
 
-#    define UART0_LENGTH_MASK   (_BV(UCSZ01) | _BV(UCSZ00))
-#    define UART0_LENGTH_5      0
-#    define UART0_LENGTH_6      _BV(UCSZ00)
-#    define UART0_LENGTH_7      _BV(UCSZ01)
-#    define UART0_LENGTH_8      (_BV(UCSZ01) | _BV(UCSZ00))
+#    define UART_LENGTH_MASK   (_BV(UCSZ1) | _BV(UCSZ0))
+#    define UART_LENGTH_5      0
+#    define UART_LENGTH_6      _BV(UCSZ0)
+#    define UART_LENGTH_7      _BV(UCSZ1)
+#    define UART_LENGTH_8      UART_LENGTH_MASK
 
-#    define UART0_PARITY_MASK   (_BV(UPM01) | _BV(UPM00))
-#    define UART0_PARITY_NONE   0
-#    define UART0_PARITY_EVEN   _BV(UPM01)
-#    define UART0_PARITY_ODD    UART0_PARITY_MASK
+#    define UART_PARITY_MASK   (_BV(UPM1) | _BV(UPM0))
+#    define UART_PARITY_NONE   0
+#    define UART_PARITY_EVEN   _BV(UPM1)
+#    define UART_PARITY_ODD    UART_PARITY_MASK
 
-#    define UART0_STOP_MASK     _BV(USBS0)
-#    define UART0_STOP_1        0
-#    define UART0_STOP_2        UART0_STOP_MASK
+#    define UART_STOP_MASK     _BV(USBS)
+#    define UART_STOP_1        0
+#    define UART_STOP_2        UART_STOP_MASK
 
-#    define UART0_SET_LENGTH(x) do{UCSR0C = (UCSR0C & (uint8_t)~UART0_LENGTH_MASK) | (x & UART0_LENGTH_MASK);} while(0)
-#    define UART0_SET_PARITY(x) do{UCSR0C = (UCSR0C & (uint8_t)~UART0_PARITY_MASK) | (x & UART0_PARITY_MASK);} while(0)
-#    define UART0_SET_STOP(x)   do{UCSR0C = (UCSR0C & (uint8_t)~UART0_STOP_MASK) | (x & UART0_STOP_MASK);} while(0)
+#    define UARTA_SET_LENGTH(x) do{UCSRAC = (UCSRAC & (uint8_t)~UART_LENGTH_MASK) | (x & UART_LENGTH_MASK);} while(0)
+#    define UARTA_SET_PARITY(x) do{UCSRAC = (UCSRAC & (uint8_t)~UART_PARITY_MASK) | (x & UART_PARITY_MASK);} while(0)
+#    define UARTA_SET_STOP(x)   do{UCSRAC = (UCSRAC & (uint8_t)~UART_STOP_MASK) | (x & UART_STOP_MASK);} while(0)
 
 #if defined __AVR_ATmega8__ || __AVR_ATmega16__ || defined __AVR_ATmega32__
-#  define UART1_MODE_SETUP()  do { UCSRC = _BV(URSEL) | _BV(UCSZ1) | _BV(UCSZ0); } while(0)
+#  define UART1_MODE_SETUP()  do { UCSRAC = _BV(URSEL) | _BV(UCSZ1) | _BV(UCSZ0); } while(0)
 #  else
-#  define UART1_MODE_SETUP()  do { UCSRC = _BV(UCSZ1) | _BV(UCSZ0); } while(0)
+#  define UART1_MODE_SETUP()  do { UCSRAC = _BV(UCSZ1) | _BV(UCSZ0); } while(0)
 #endif
 
 
@@ -174,19 +184,19 @@ void uart2_puts(char* str);
 
 #endif
 #if defined DYNAMIC_UART
-typedef enum {STOP_0 = UART0_STOP_1,
-              STOP_1 = UART0_STOP_2,
+typedef enum {STOP_0 = UART_STOP_1,
+              STOP_1 = UART_STOP_2,
              } uartstop_t;
 
-typedef enum {LENGTH_5 = UART0_LENGTH_5,
-              LENGTH_6 = UART0_LENGTH_6,
-              LENGTH_7 = UART0_LENGTH_7,
-              LENGTH_8 = UART0_LENGTH_8
+typedef enum {LENGTH_5 = UART_LENGTH_5,
+              LENGTH_6 = UART_LENGTH_6,
+              LENGTH_7 = UART_LENGTH_7,
+              LENGTH_8 = UART_LENGTH_8
              } uartlen_t;
 
-typedef enum {PARITY_NONE = UART0_PARITY_NONE,
-              PARITY_EVEN = UART0_PARITY_EVEN,
-              PARITY_ODD = UART0_PARITY_ODD
+typedef enum {PARITY_NONE = UART_PARITY_NONE,
+              PARITY_EVEN = UART_PARITY_EVEN,
+              PARITY_ODD = UART_PARITY_ODD
              } uartpar_t;
 #endif
 

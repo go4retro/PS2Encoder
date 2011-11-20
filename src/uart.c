@@ -59,12 +59,12 @@ static volatile uint8_t rx2_tail;
 #endif
 
 #if defined ENABLE_UART1
-ISR(USART_UDRE_vect) {
+ISR(USARTA_UDRE_vect) {
   if (tx1_tail == tx1_head) return;
-  UDR = tx1_buf[tx1_tail];
+  UDRA = tx1_buf[tx1_tail];
   tx1_tail = (tx1_tail+1) & (sizeof(tx1_buf)-1);
   if (tx1_tail == tx1_head)
-    UCSRB &= ~ _BV(UDRIE);
+    UCSRAB &= ~ _BV(UDRIEA);
 }
 
 void uart_putc(char c) {
@@ -72,7 +72,7 @@ void uart_putc(char c) {
   while (t == tx1_tail);   // wait for free space
   tx1_buf[tx1_head] = c;
   tx1_head = t;
-  UCSRB |= _BV(UDRIE);
+  UCSRAB |= _BV(UDRIEA);
 }
 
 void uart_puthex(uint8_t num) {
@@ -138,8 +138,8 @@ static int ioputc(char c, FILE *stream) {
 
 uint8_t uart_getc(void) {
 #if !defined UART1_RX_BUFFER_SHIFT || UART1_RX_BUFFER_SHIFT == 0
-  loop_until_bit_is_set(UCSRA,RXC);
-  return UDR;
+  loop_until_bit_is_set(UCSRAA,RXCA);
+  return UDRA;
 #else
   uint8_t tmptail;
 
@@ -174,12 +174,12 @@ static FILE mystdout = FDEV_SETUP_STREAM(ioputc, NULL, _FDEV_SETUP_WRITE);
 #endif
 
 #ifdef ENABLE_UART2
-ISR(USART1_UDRE_vect) {
+ISR(USARTB_UDRE_vect) {
   if (tx2_tail == tx2_head) return;
   UDR1 = tx2_buf[tx2_tail];
   tx2_tail = (tx2_tail+1) & (sizeof(tx2_buf)-1);
   if (tx2_tail == tx2_head)
-    UCSR1B &= ~ _BV(UDRIE);
+    UCSRBB &= ~ _BV(UDRIEB);
 }
 
 ISR(USART1_RX_vect) {
@@ -187,7 +187,7 @@ ISR(USART1_RX_vect) {
   uint8_t tmphead;
 
   /* Read the received data */
-  data = UDR1;
+  data = UDRB;
 
   /* Calculate buffer index */
   tmphead = ( rx2_head + 1 ) & (sizeof(rx2_buf)-1);
@@ -202,17 +202,17 @@ ISR(USART1_RX_vect) {
 
 void uart2_putc(char c) {
   uint8_t t=(tx2_head+1) & (sizeof(tx2_buf)-1);
-  UCSR1B &= ~ _BV(UDRIE);   // turn off RS232 irq
+  UCSR1BB &= ~ _BV(UDRIEB);   // turn off RS232 irq
   tx2_buf[tx2_head] = c;
   tx2_head = t;
-  UCSR1B |= _BV(UDRIE);
+  UCSR1BB |= _BV(UDRIEB);
 }
 
-#if !defined UART2_RX_BUFFER_SHIFT || UART2_RX_BUFFER_SHIFT == 0
-  loop_until_bit_is_set(UCSR1A,RXC);
-  return UDR;
-#else
 uint8_t uart2_getc(void) {
+#if !defined UART2_RX_BUFFER_SHIFT || UART2_RX_BUFFER_SHIFT == 0
+  loop_until_bit_is_set(UCSRBA,RXCB);
+  return UDRB;
+#else
   uint8_t tmptail;
 
   while ( rx2_head == rx2_tail ) { ; }
@@ -236,24 +236,33 @@ void uart2_puts(char* str) {
 #  ifdef ENABLE_UART1
 
 void uart_config(uint16_t rate, uartlen_t length, uartpar_t parity, uartstop_t stopbits) {
-  UBRRH = rate >> 8;
-  UBRRL = rate & 0xff;
+  UBRRAH = rate >> 8;
+  UBRRAL = rate & 0xff;
 
   // set word length
-  UART0_SET_LENGTH(length);
+  UARTA_SET_LENGTH(length);
 
   // set parity
-  UART0_SET_PARITY(parity);
+  UARTA_SET_PARITY(parity);
 
   // set stop bits
-  UART0_SET_STOP(stopbits);
+  UARTA_SET_STOP(stopbits);
 }
 #  endif
 
 #  ifdef ENABLE_UART2
 void uart2_config(uint16_t rate, uartlen_t length, uartpar_t parity, uartstop_t stopbits) {
-  UBRR1H = rate >> 8;
-  UBRR1L = rate & 0xff;
+  UBRRBH = rate >> 8;
+  UBRRBL = rate & 0xff;
+
+  // set word length
+  UARTB_SET_LENGTH(length);
+
+  // set parity
+  UARTB_SET_PARITY(parity);
+
+  // set stop bits
+  UARTB_SET_STOP(stopbits);
 }
 #  endif
 #endif
@@ -265,10 +274,10 @@ void uart_init(void) {
 
   UART1_MODE_SETUP();
 
-  UBRRH = CALC_BPS(UART1_BAUDRATE) >> 8;
-  UBRRL = CALC_BPS(UART1_BAUDRATE) & 0xff;
+  UBRRAH = CALC_BPS(UART1_BAUDRATE) >> 8;
+  UBRRAL = CALC_BPS(UART1_BAUDRATE) & 0xff;
 
-  UCSRB = _BV(RXEN) | _BV(TXEN);
+  UCSRAB = _BV(RXENA) | _BV(TXENA);
 
   stdout = &mystdout;
 
@@ -280,11 +289,11 @@ void uart_init(void) {
 #    endif
 
 #  ifdef ENABLE_UART2
-  UBRR1H = CALC_BPS(ENABLE_UART2_BAUDRATE) >> 8;
-  UBRR1L = CALC_BPS(ENABLE_UART2_BAUDRATE) & 0xff;
+  UBRRBH = CALC_BPS(ENABLE_UART2_BAUDRATE) >> 8;
+  UBRRBL = CALC_BPS(ENABLE_UART2_BAUDRATE) & 0xff;
 
-  UCSR1B = _BV(RXCIE1) | _BV(RXEN1) | _BV(TXEN1);
-  UCSR1C = _BV(UCSZ11) | _BV(UCSZ10);
+  UCSRBB = _BV(RXCIEB) | _BV(RXENB) | _BV(TXENB);
+  UCSRBC = _BV(UCSZB1) | _BV(UCSZB0);
 
   tx2_tail  = 0;
   tx2_head = 0;
