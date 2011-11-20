@@ -80,6 +80,13 @@
 
 #elif defined __AVR_ATmega16__ || defined __AVR_ATmega8__
 
+#    define UCSZ00  UCSZ0
+#    define UCSZ01  UCSZ1
+#    define UPM00   UPM0
+#    define UPM01   UPM1
+#    define USBS0   USBS
+#    define UCSR0C  UCSRC
+
 #elif defined __AVR_ATmega128__
 #    define UBRRH  UBRR0H
 #    define UBRRL  UBRR0L
@@ -94,6 +101,25 @@
 #else
 #  error Unknown chip!
 #endif
+
+#    define UART0_LENGTH_MASK   (_BV(UCSZ01) | _BV(UCSZ00))
+#    define UART0_LENGTH_5      0
+#    define UART0_LENGTH_6      _BV(UCSZ00)
+#    define UART0_LENGTH_7      _BV(UCSZ01)
+#    define UART0_LENGTH_8      (_BV(UCSZ01) | _BV(UCSZ00))
+
+#    define UART0_PARITY_MASK   (_BV(UPM01) | _BV(UPM00))
+#    define UART0_PARITY_NONE   0
+#    define UART0_PARITY_EVEN   _BV(UPM01)
+#    define UART0_PARITY_ODD    UART0_PARITY_MASK
+
+#    define UART0_STOP_MASK     _BV(USBS0)
+#    define UART0_STOP_1        0
+#    define UART0_STOP_2        UART0_STOP_MASK
+
+#    define UART0_SET_LENGTH(x) do{UCSR0C = (UCSR0C & (uint8_t)~UART0_LENGTH_MASK) | (x & UART0_LENGTH_MASK);} while(0)
+#    define UART0_SET_PARITY(x) do{UCSR0C = (UCSR0C & (uint8_t)~UART0_PARITY_MASK) | (x & UART0_PARITY_MASK);} while(0)
+#    define UART0_SET_STOP(x)   do{UCSR0C = (UCSR0C & (uint8_t)~UART0_STOP_MASK) | (x & UART0_STOP_MASK);} while(0)
 
 #if defined __AVR_ATmega8__ || __AVR_ATmega16__ || defined __AVR_ATmega32__
 #  define UART1_MODE_SETUP()  do { UCSRC = _BV(URSEL) | _BV(UCSZ1) | _BV(UCSZ0); } while(0)
@@ -147,17 +173,33 @@ void uart2_puts(char* str);
 #define uart2_puts(x)   do {} while(0)
 
 #endif
+#if defined DYNAMIC_UART
+typedef enum {STOP_0 = UART0_STOP_1,
+              STOP_1 = UART0_STOP_2,
+             } uartstop_t;
 
-#if defined ENABLE_UART1 && defined DYNAMIC_BPS_RATE
-void uart_set_bps(uint16_t bps);
-#else
-#define uart_set_bps(bps) do {} while(0)
+typedef enum {LENGTH_5 = UART0_LENGTH_5,
+              LENGTH_6 = UART0_LENGTH_6,
+              LENGTH_7 = UART0_LENGTH_7,
+              LENGTH_8 = UART0_LENGTH_8
+             } uartlen_t;
+
+typedef enum {PARITY_NONE = UART0_PARITY_NONE,
+              PARITY_EVEN = UART0_PARITY_EVEN,
+              PARITY_ODD = UART0_PARITY_ODD
+             } uartpar_t;
 #endif
 
-#if defined ENABLE_UART2 && defined DYNAMIC_BPS_RATE
-void uart2_set_bps(uint16_t bps);
+#if defined ENABLE_UART1 && defined DYNAMIC_UART
+void uart_config(uint16_t rate, uartlen_t length, uartpar_t parity, uartstop_t stopbits);
 #else
-#define uart2_set_bps(bps) do {} while(0)
+#define uart_config(bps, length, parity, stopbits) do {} while(0)
+#endif
+
+#if defined ENABLE_UART2 && defined DYNAMIC_UART
+void uart2_config(uint16_t rate, uartlen_t length, uartpar_t parity, uartstop_t stopbits);
+#else
+#define uart2_config(bps, length, parity, stopbits) do {} while(0)
 #endif
 
 #endif

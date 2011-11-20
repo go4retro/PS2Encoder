@@ -231,17 +231,27 @@ void uart2_puts(char* str) {
 
 #endif
 
-#ifdef DYNAMIC_BPS_RATE
+#ifdef DYNAMIC_UART
+
 #  ifdef ENABLE_UART1
-void uart_set_bps(uint16_t rate) {
+
+void uart_config(uint16_t rate, uartlen_t length, uartpar_t parity, uartstop_t stopbits) {
   UBRRH = rate >> 8;
   UBRRL = rate & 0xff;
+
+  // set word length
+  UART0_SET_LENGTH(length);
+
+  // set parity
+  UART0_SET_PARITY(parity);
+
+  // set stop bits
+  UART0_SET_STOP(stopbits);
 }
 #  endif
 
-
 #  ifdef ENABLE_UART2
-void uart2_set_bps(uint16_t rate) {
+void uart2_config(uint16_t rate, uartlen_t length, uartpar_t parity, uartstop_t stopbits) {
   UBRR1H = rate >> 8;
   UBRR1L = rate & 0xff;
 }
