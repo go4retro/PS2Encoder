@@ -55,6 +55,6 @@ CONFIG_HARDWARE_VARIANT=1
 # Warning: This option increases the code size a lot.
 CONFIG_STACK_TRACKING=n
 
-EFUSE=0xf9
-HFUSE=0xdc
-LFUSE=0xff
+CONFIG_EFUSE=0x01
+CONFIG_HFUSE=0xdc
+CONFIG_LFUSE=0xff
