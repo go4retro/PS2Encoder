@@ -239,14 +239,7 @@ void uart_config(uint16_t rate, uartlen_t length, uartpar_t parity, uartstop_t s
   UBRRAH = rate >> 8;
   UBRRAL = rate & 0xff;
 
-  // set word length
-  UARTA_SET_LENGTH(length);
-
-  // set parity
-  UARTA_SET_PARITY(parity);
-
-  // set stop bits
-  UARTA_SET_STOP(stopbits);
+  UARTA_CONFIG(length, parity, stopbits);
 }
 #  endif
 
@@ -255,14 +248,7 @@ void uart2_config(uint16_t rate, uartlen_t length, uartpar_t parity, uartstop_t 
   UBRRBH = rate >> 8;
   UBRRBL = rate & 0xff;
 
-  // set word length
-  UARTB_SET_LENGTH(length);
-
-  // set parity
-  UARTB_SET_PARITY(parity);
-
-  // set stop bits
-  UARTB_SET_STOP(stopbits);
+  UARTB_CONFIG(length, parity, stopbits);
 }
 #  endif
 #endif

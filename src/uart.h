@@ -112,28 +112,40 @@
 #  error Unknown chip!
 #endif
 
-#    define UART_LENGTH_MASK   (_BV(UCSZ1) | _BV(UCSZ0))
-#    define UART_LENGTH_5      0
-#    define UART_LENGTH_6      _BV(UCSZ0)
-#    define UART_LENGTH_7      _BV(UCSZ1)
-#    define UART_LENGTH_8      UART_LENGTH_MASK
+#define UART_LENGTH_MASK   (_BV(UCSZ1) | _BV(UCSZ0))
+#define UART_LENGTH_5      0
+#define UART_LENGTH_6      _BV(UCSZ0)
+#define UART_LENGTH_7      _BV(UCSZ1)
+#define UART_LENGTH_8      UART_LENGTH_MASK
 
-#    define UART_PARITY_MASK   (_BV(UPM1) | _BV(UPM0))
-#    define UART_PARITY_NONE   0
-#    define UART_PARITY_EVEN   _BV(UPM1)
-#    define UART_PARITY_ODD    UART_PARITY_MASK
+#define UART_PARITY_MASK   (_BV(UPM1) | _BV(UPM0))
+#define UART_PARITY_NONE   0
+#define UART_PARITY_EVEN   _BV(UPM1)
+#define UART_PARITY_ODD    UART_PARITY_MASK
 
-#    define UART_STOP_MASK     _BV(USBS)
-#    define UART_STOP_1        0
-#    define UART_STOP_2        UART_STOP_MASK
-
-#    define UARTA_SET_LENGTH(x) do{UCSRAC = (UCSRAC & (uint8_t)~UART_LENGTH_MASK) | (x & UART_LENGTH_MASK);} while(0)
-#    define UARTA_SET_PARITY(x) do{UCSRAC = (UCSRAC & (uint8_t)~UART_PARITY_MASK) | (x & UART_PARITY_MASK);} while(0)
-#    define UARTA_SET_STOP(x)   do{UCSRAC = (UCSRAC & (uint8_t)~UART_STOP_MASK) | (x & UART_STOP_MASK);} while(0)
+#define UART_STOP_MASK     _BV(USBS)
+#define UART_STOP_1        0
+#define UART_STOP_2        UART_STOP_MASK
 
 #if defined __AVR_ATmega8__ || __AVR_ATmega16__ || defined __AVR_ATmega32__
+#  define UARTA_CONFIG(l,p,s) do{\
+                                uint8_t __tmp; \
+                                cli(); \
+                                __tmp = UCSRAC; \
+                                __tmp = UCSRAC & (uint8_t)~(UART_LENGTH_MASK | UART_PARITY_MASK | UART_STOP_MASK); \
+                                UCSRAC = __tmp | _BV(URSEL) | (l & UART_LENGTH_MASK) | (p & UART_PARITY_MASK) | (s & UART_STOP_MASK); \
+                                sei(); \
+                                } while(0)
 #  define UART1_MODE_SETUP()  do { UCSRAC = _BV(URSEL) | _BV(UCSZ1) | _BV(UCSZ0); } while(0)
 #  else
+#  define UARTA_CONFIG(l,p,s) do{\
+                                UCSRAC = (UCSRAC & (uint8_t)~(UART_LENGTH_MASK | UART_PARITY_MASK | UART_STOP_MASK)) |\
+                                         (l & UART_LENGTH_MASK) | (p & UART_PARITY_MASK) | (s & UART_STOP_MASK); \
+                                } while(0)
+#  define UARTB_CONFIG(l,p,s) do{\
+                                UCSRBC = (UCSRBC & (uint8_t)~(UART_LENGTH_MASK | UART_PARITY_MASK | UART_STOP_MASK)) |\
+                                         (l & UART_LENGTH_MASK) | (p & UART_PARITY_MASK) | (s & UART_STOP_MASK); \
+                                } while(0)
 #  define UART1_MODE_SETUP()  do { UCSRAC = _BV(UCSZ1) | _BV(UCSZ0); } while(0)
 #endif
 
