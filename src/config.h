@@ -25,6 +25,9 @@
 
 #include "autoconf.h"
 
+#define PS2_USE_HOST
+//#define PS2_USE_DEVICE
+
 #ifndef TRUE
 #define FALSE             0
 #define TRUE              (!FALSE)
@@ -34,14 +37,22 @@
 #define PS2_RX_BUFFER_SHIFT   3
 #define PS2_TX_BUFFER_SHIFT   3
 
-#define ENABLE_UART1
+#define ENABLE_UART0
 // log2 of the UART buffer size, i.e. 6 for 64, 7 for 128, 8 for 256 etc.
-#define UART1_TX_BUFFER_SHIFT  3
+#define UART0_TX_BUFFER_SHIFT  3
 
-#define UART1_BAUDRATE CONFIG_UART_BAUDRATE
+#define UART0_BAUDRATE CONFIG_UART_BAUDRATE
 #define DYNAMIC_UART
 
 #if CONFIG_HARDWARE_VARIANT==1
+#  define PS2_PORT_DDR_CLK    DDRD
+#  define PS2_PORT_CLK_OUT    PORTD
+#  define PS2_PORT_CLK_IN     PIND
+#  define PS2_PIN_CLK         _BV(PD2)
+#  define PS2_PORT_DDR_DATA   DDRD
+#  define PS2_PORT_DATA_OUT   PORTD
+#  define PS2_PORT_DATA_IN    PIND
+#  define PS2_PIN_DATA        _BV(PD3)
 
 #  define DATA_SETDDR()       do { DDRB |= 0x0f; DDRC |= 0x0f; } while(0)
 #  define DATA_OUT(x)         do { PORTB = (PORTB & 0xf0) | (x & 0x0f); PORTC = (PORTC & 0xf0) | ((x & 0xf0) >> 4); } while(0)
@@ -57,20 +68,6 @@
 #  define CONF_MODE_SETDDR()  do { DDRD &= ~_BV(PD5) ; PORTD |= _BV(PD5); } while(0)
 // this must return zero for config
 #  define CONF_MODE()         (!(PIND & _BV(PD5)))
-
-
 #endif
 
-#define PS2_USE_HOST
-//#define PS2_USE_DEVICE
-
-#define PS2_PORT_DDR_CLK    DDRD
-#define PS2_PORT_CLK_OUT    PORTD
-#define PS2_PORT_CLK_IN     PIND
-#define PS2_PIN_CLK         _BV(PD2)
-#define PS2_PORT_DDR_DATA   DDRD
-#define PS2_PORT_DATA_OUT   PORTD
-#define PS2_PORT_DATA_IN    PIND
-#define PS2_PIN_DATA        _BV(PD3)
-
-#endif /*CONFIG_H_*/
+#endif /*CONFIG_H*/
