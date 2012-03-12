@@ -1,6 +1,6 @@
 /*
     PS2Encoder - PS2 Keyboard to serial/parallel converter
-    Copyright Jim Brain and RETRO Innovations, 2008-2011
+    Copyright Jim Brain and RETRO Innovations, 2008-2012
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,12 +16,12 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-    ps2_lib.h: definitions for both host and device PS/2 modes
+    ps2_int.h: internal PS/2 helper functions and enums
 
 */
 
 #ifndef PS2_LIB_H
-#define PS2_LIB_H 1
+#define PS2_LIB_H
 
 #define PS2_RX_BUFFER_MASK   (_BV(PS2_RX_BUFFER_SHIFT) - 1)
 #define PS2_TX_BUFFER_MASK   (_BV(PS2_TX_BUFFER_SHIFT) - 1)
@@ -34,29 +34,35 @@
 #if defined __AVR_ATmega8__ ||  defined __AVR_ATmega16__ || defined __AVR_ATmega32__ || defined __AVR_ATmega162__
 #  define CLK_INTDR     MCUCR     // INT Direction Register
 #  define CLK_INTCR     GICR      // INT Control Register
+#  define CLK_INTFR     GIFR      // INT Flag Register
 #  if PS2_PIN_CLK == _BV(PD3)
 #    define CLK_ISC0      ISC10
 #    define CLK_ISC1      ISC11
 #    define CLK_INT       INT1
+#    define CLK_INTF      INTF1
 #    define CLK_INT_vect  INT1_vect
 #  else 
 #    define CLK_ISC0      ISC00
 #    define CLK_ISC1      ISC01
 #    define CLK_INT       INT0
+#    define CLK_INTF      INTF0
 #    define CLK_INT_vect  INT0_vect
 #  endif
 #else
 #  define CLK_INTDR     EICRA     // INT Direction Register
 #  define CLK_INTCR     EIMSK     // INT Control Register
+#  define CLK_INTFR     EIFR      // INT Flag Register
 #  if PS2_PIN_CLK == _BV(PD3)
 #    define CLK_ISC0      ISC10
 #    define CLK_ISC1      ISC11
 #    define CLK_INT       INT1
+#    define CLK_INTF      INTF1
 #    define CLK_INT_vect  INT1_vect
 #  else
 #    define CLK_ISC0      ISC00
 #    define CLK_ISC1      ISC01
 #    define CLK_INT       INT0
+#    define CLK_INTF      INTF0
 #    define CLK_INT_vect  INT0_vect
 #  endif
 #endif

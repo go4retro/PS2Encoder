@@ -1,6 +1,6 @@
 /*
     PS2Encoder - PS2 Keyboard to serial/parallel converter
-    Copyright Jim Brain and RETRO Innovations, 2008-2011
+    Copyright Jim Brain and RETRO Innovations, 2008-2012
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,10 +20,9 @@
 
 */
 
-
-#include "config.h"
 #include <inttypes.h>
 #include <avr/interrupt.h>
+#include "config.h"
 #include "ps2.h"
 #include "ps2_int.h"
 

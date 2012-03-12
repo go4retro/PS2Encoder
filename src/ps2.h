@@ -1,6 +1,6 @@
 /*
     PS2Encoder - PS2 Keyboard to serial/parallel converter
-    Copyright Jim Brain and RETRO Innovations, 2008-2011
+    Copyright Jim Brain and RETRO Innovations, 2008-2012
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 */
 
 #ifndef PS2_H
-#define PS2_H 1
+#define PS2_H
 
 typedef enum { PS2_MODE_DEVICE = 1, PS2_MODE_HOST = 2 } ps2mode_t;
 
@@ -165,11 +165,9 @@ typedef enum { PS2_MODE_DEVICE = 1, PS2_MODE_HOST = 2 } ps2mode_t;
 #define PS2_MS_CMD_READ_DATA  0xeb
 
 void ps2_init(ps2mode_t mode);
-
 uint8_t ps2_getc(void);
 void ps2_putc(uint8_t data);
 uint8_t ps2_data_available(void);
-
 void ps2_handle_cmds(uint8_t data);
 uint16_t ps2_get_typematic_delay(uint8_t rate);
 uint16_t ps2_get_typematic_period(uint8_t rate);
