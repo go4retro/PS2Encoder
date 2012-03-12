@@ -20,8 +20,8 @@
 
 */
 
-#ifndef PS2_LIB_H
-#define PS2_LIB_H
+#ifndef PS2_INT_H
+#define PS2_INT_H
 
 #define PS2_RX_BUFFER_MASK   (_BV(PS2_RX_BUFFER_SHIFT) - 1)
 #define PS2_TX_BUFFER_MASK   (_BV(PS2_TX_BUFFER_SHIFT) - 1)
