@@ -58,6 +58,7 @@ typedef enum {
 #define KB_CONFIG             1
 
 static uint8_t meta;
+static uint8_t xt_eshift;
 static uint8_t config;
 static uint8_t led_state=0;
 uint8_t globalopts;
@@ -97,7 +98,7 @@ static void sendhex(uint8_t val) {
 #define CTRL(x)    (x & 0x1f)
 #define MAP(x,y,z) do { u = x; s = y; c = z;} while(0)
 
-static uint8_t ps2_to_ascii(uint8_t code) {
+static void ps2_to_ascii(uint8_t code) {
   uint8_t u = 0,s = 0,c = 0;
 
   // Yes, there are many more elegant ways of handling the mapping.  But, this is simple, and easy to rework.
@@ -308,16 +309,28 @@ static uint8_t ps2_to_ascii(uint8_t code) {
 
   }
   if(meta & POLL_FLAG_CONTROL && c)
-    return c;
+    u = c;
   else if((meta & POLL_FLAG_SHIFT) && s)
-    return s;
+    u = s;
   else if((meta & POLL_FLAG_CAPS_LOCK) && u >= 'a' && u <= 'z')
-    return s;
-  return u;
+    u = s;
+
+  if(u)
+    send_raw(u);
+  if((globalopts & OPT_CRLF) && u == 13 && !(meta & POLL_FLAG_CONTROL) )
+    send_raw(10);
 }
 
-static uint8_t ps2_to_xt(uint8_t code,uint8_t state) {
+static void ps2_to_xt(uint8_t code,uint8_t keydown) {
   uint8_t key = 0;
+  uint8_t eshift = FALSE;
+
+
+  if(keydown && xt_eshift) { // remove extended shift)
+    xt_putc(XT_KEY_EXT);
+    xt_putc(XT_KEY_LSHIFT | 0x80);
+    xt_eshift = FALSE;
+  }
 
   // Yes, there are many more elegant ways of handling the mapping.  But, this is simple, and easy to rework.
   switch(code) {
@@ -369,9 +382,6 @@ static uint8_t ps2_to_xt(uint8_t code,uint8_t state) {
     case PS2_KEY_1:
       key = XT_KEY_1;
       break;
-    case PS2_KEY_NUM_1:
-      key = XT_KEY_NUM_1;
-      break;
     case PS2_KEY_Z:
       key = XT_KEY_Z;
       break;
@@ -386,9 +396,6 @@ static uint8_t ps2_to_xt(uint8_t code,uint8_t state) {
       break;
     case PS2_KEY_2:
       key = XT_KEY_2;
-      break;
-    case PS2_KEY_NUM_2:
-      key = XT_KEY_NUM_2;
       break;
     case PS2_KEY_C:
       key = XT_KEY_C;
@@ -405,14 +412,8 @@ static uint8_t ps2_to_xt(uint8_t code,uint8_t state) {
     case PS2_KEY_4:
       key = XT_KEY_4;
       break;
-    case PS2_KEY_NUM_4:
-      key = XT_KEY_NUM_4;
-      break;
     case PS2_KEY_3:
       key = XT_KEY_3;
-      break;
-    case PS2_KEY_NUM_3:
-      key = XT_KEY_NUM_3;
       break;
     case PS2_KEY_SPACE:
       key = XT_KEY_SPACE;
@@ -432,9 +433,6 @@ static uint8_t ps2_to_xt(uint8_t code,uint8_t state) {
     case PS2_KEY_5:
       key = XT_KEY_5;
       break;
-    case PS2_KEY_NUM_5:
-      key = XT_KEY_NUM_5;
-      break;
     case PS2_KEY_N:
       key = XT_KEY_N;
       break;
@@ -453,9 +451,6 @@ static uint8_t ps2_to_xt(uint8_t code,uint8_t state) {
     case PS2_KEY_6:
       key = XT_KEY_6;
       break;
-    case PS2_KEY_NUM_6:
-      key = XT_KEY_NUM_6;
-      break;
     case PS2_KEY_M:
       key = XT_KEY_M;
       break;
@@ -468,14 +463,8 @@ static uint8_t ps2_to_xt(uint8_t code,uint8_t state) {
     case PS2_KEY_7:
       key = XT_KEY_7;
       break;
-    case PS2_KEY_NUM_7:
-      key = XT_KEY_NUM_7;
-      break;
     case PS2_KEY_8:
       key = XT_KEY_8;
-      break;
-    case PS2_KEY_NUM_8:
-      key = XT_KEY_NUM_8;
       break;
     case PS2_KEY_COMMA:
       key = XT_KEY_COMMA;
@@ -497,9 +486,6 @@ static uint8_t ps2_to_xt(uint8_t code,uint8_t state) {
       break;
     case PS2_KEY_9:
       key = XT_KEY_9;
-      break;
-    case PS2_KEY_NUM_9:
-      key = XT_KEY_NUM_9;
       break;
     case PS2_KEY_PERIOD:
       key = XT_KEY_PERIOD;
@@ -558,59 +544,14 @@ static uint8_t ps2_to_xt(uint8_t code,uint8_t state) {
     case PS2_KEY_ALT:
       key = XT_KEY_ALT;
       break;
-    case PS2_KEY_RALT | 0x80:
-      key = XT_KEY_RALT;
-      break;
     case PS2_KEY_LCTRL:
       key = XT_KEY_LCTRL;
-      break;
-    case PS2_KEY_RCTRL | 0x80:
-      key = XT_KEY_RCTRL;
       break;
     case PS2_KEY_LSHIFT:
       key = XT_KEY_LSHIFT;
       break;
     case PS2_KEY_RSHIFT:
       key = XT_KEY_RSHIFT;
-      break;
-    case PS2_KEY_NUM_SLASH | 0x80:
-      key = XT_KEY_NUM_SLASH;
-      break;
-    case PS2_KEY_NUM_ENTER | 0x80:
-      key = XT_KEY_NUM_ENTER;
-      break;
-    case PS2_KEY_END | 0x80:
-      key = XT_KEY_END;
-      break;
-    case PS2_KEY_CRSR_LEFT | 0x80:
-      key = XT_KEY_CRSR_LEFT;
-      break;
-    case PS2_KEY_HOME | 0x80:
-      key = XT_KEY_HOME;
-      break;
-    case PS2_KEY_INSERT | 0x80:
-      key = XT_KEY_INSERT;
-      break;
-    case PS2_KEY_DELETE | 0x80:
-      key = XT_KEY_DELETE;
-      break;
-    case PS2_KEY_CRSR_DOWN | 0x80:
-      key = XT_KEY_CRSR_DOWN;
-      break;
-    case PS2_KEY_CRSR_RIGHT | 0x80:
-      key = XT_KEY_CRSR_RIGHT;
-      break;
-    case PS2_KEY_CRSR_UP | 0x80:
-      key = XT_KEY_CRSR_UP;
-      break;
-    case PS2_KEY_PAGE_DOWN | 0x80:
-      key = XT_KEY_PAGE_DOWN;
-      break;
-    case PS2_KEY_PRINT_SCREEN | 0x80:
-      key = XT_KEY_PRINT_SCREEN;
-      break;
-    case PS2_KEY_PAGE_UP | 0x80:
-      key = XT_KEY_PAGE_UP;
       break;
     case PS2_KEY_NUM_PLUS:
       key = XT_KEY_NUM_PLUS;
@@ -621,8 +562,137 @@ static uint8_t ps2_to_xt(uint8_t code,uint8_t state) {
     case PS2_KEY_NUM_STAR:
       key = XT_KEY_NUM_STAR;
       break;
+    case PS2_KEY_INT1:
+      key = XT_KEY_INT1;
+      break;
+    case PS2_KEY_INT2:
+      key = XT_KEY_INT2;
+      break;
+    case PS2_KEY_NUM_1:
+      key = XT_KEY_NUM_1;
+      break;
+    case PS2_KEY_NUM_2:
+      key = XT_KEY_NUM_2;
+      break;
+    case PS2_KEY_NUM_3:
+      key = XT_KEY_NUM_3;
+      break;
+    case PS2_KEY_NUM_4:
+      key = XT_KEY_NUM_4;
+      break;
+    case PS2_KEY_NUM_5:
+      key = XT_KEY_NUM_5;
+      break;
+    case PS2_KEY_NUM_6:
+      key = XT_KEY_NUM_6;
+      break;
+    case PS2_KEY_NUM_7:
+      key = XT_KEY_NUM_7;
+      break;
+    case PS2_KEY_NUM_8:
+      key = XT_KEY_NUM_8;
+      break;
+    case PS2_KEY_NUM_9:
+      key = XT_KEY_NUM_9;
+      break;
   }
-  return (state ? key : key | 0x80);
+  if(key) {
+    xt_putc(keydown ? key : key | 0x80);
+  } else {
+    // check for extended keys
+    switch (code) {
+      case PS2_KEY_RALT | 0x80:
+        key = XT_KEY_RALT;
+        break;
+      case PS2_KEY_RCTRL | 0x80:
+        key = XT_KEY_RCTRL;
+        break;
+      case PS2_KEY_NUM_ENTER | 0x80:
+        key = XT_KEY_NUM_ENTER;
+        break;
+      case PS2_KEY_NUM_SLASH | 0x80:
+        key = XT_KEY_NUM_SLASH;
+        break;
+    }
+    if(key) {
+      // send extended key
+      xt_putc(XT_KEY_EXT);
+      xt_putc(keydown ? key : key | 0x80);
+    } else {
+      // codes that are sent with conditional extended shift:
+      switch(code) {
+        case PS2_KEY_END | 0x80:
+          key = XT_KEY_END;
+          eshift = (meta & POLL_FLAG_NUM_LOCK);
+          break;
+        case PS2_KEY_HOME | 0x80:
+          key = XT_KEY_HOME;
+          eshift = (meta & POLL_FLAG_NUM_LOCK);
+          break;
+        case PS2_KEY_INSERT | 0x80:
+          key = XT_KEY_INSERT;
+          eshift = (meta & POLL_FLAG_NUM_LOCK);
+          break;
+        case PS2_KEY_DELETE | 0x80:
+          key = XT_KEY_DELETE;
+          eshift = (meta & POLL_FLAG_NUM_LOCK);
+          break;
+        case PS2_KEY_PAGE_DOWN | 0x80:
+          key = XT_KEY_PAGE_DOWN;
+          eshift = (meta & POLL_FLAG_NUM_LOCK);
+          break;
+        case PS2_KEY_PAGE_UP | 0x80:
+          key = XT_KEY_PAGE_UP;
+          eshift = (meta & POLL_FLAG_NUM_LOCK);
+          break;
+        case PS2_KEY_CRSR_DOWN | 0x80:
+          key = XT_KEY_CRSR_DOWN;
+          eshift = (meta & POLL_FLAG_NUM_LOCK);
+          break;
+        case PS2_KEY_CRSR_RIGHT | 0x80:
+          key = XT_KEY_CRSR_RIGHT;
+          eshift = (meta & POLL_FLAG_NUM_LOCK);
+          break;
+        case PS2_KEY_CRSR_UP | 0x80:
+          key = XT_KEY_CRSR_UP;
+          eshift = (meta & POLL_FLAG_NUM_LOCK);
+          break;
+        case PS2_KEY_CRSR_LEFT | 0x80:
+          key = XT_KEY_CRSR_LEFT;
+          eshift = (meta & POLL_FLAG_NUM_LOCK);
+          break;
+        case PS2_KEY_PRINT_SCREEN | 0x80:
+          key = XT_KEY_PRINT_SCREEN;
+          eshift = TRUE;
+      }
+      if(key) {
+        if(eshift && keydown && !(meta & POLL_FLAG_SHIFT)) {
+          // On keydown, put extended shift keydown first.
+          xt_putc(XT_KEY_EXT);
+          xt_putc(XT_KEY_LSHIFT);
+          xt_eshift = TRUE;
+        }
+        // send extended key
+        xt_putc(XT_KEY_EXT);
+        xt_putc(keydown ? key : key | 0x80);
+        if(eshift && !keydown && !(meta & POLL_FLAG_SHIFT)) {
+          // on keyup, put extended shift keyup last.
+          // even if we've already put key up on E Shift, do it again.
+          xt_putc(XT_KEY_EXT);
+          xt_putc(XT_KEY_LSHIFT | 0x80);
+          xt_eshift = FALSE;
+        }
+      } else if(code == (XT_KEY_PAUSE | 0x80) && keydown) {
+        xt_putc(XT_KEY_EXT_2);
+        xt_putc(XT_KEY_LCTRL);
+        xt_putc(XT_KEY_PAUSE);
+
+        xt_putc(XT_KEY_EXT_2);
+        xt_putc(XT_KEY_LCTRL | 0x80);
+        xt_putc(XT_KEY_PAUSE | 0x80);
+      }
+    }
+  }
 }
 
 static void send_option(uint8_t ch, uint8_t b) {
@@ -781,27 +851,26 @@ static void set_options(uint8_t key) {
   }
 }
 
-static void parse_key(uint8_t key, uint8_t state) {
-  uint8_t code;
+static void parse_key(uint8_t key, uint8_t keydown) {
 
   if((key & 0x7f)==PS2_KEY_ALT) {
     // turn on or off the ALT META flag
-    meta = (meta & (uint8_t)~POLL_FLAG_ALT) | (state ? POLL_FLAG_ALT : 0);
+    meta = (meta & (uint8_t)~POLL_FLAG_ALT) | (keydown ? POLL_FLAG_ALT : 0);
   } else if((key & 0x7f)==PS2_KEY_LCTRL) {
     // turn on or off the CTRL META flag
-    meta = (meta & (uint8_t)~POLL_FLAG_CONTROL) | (state ? POLL_FLAG_CONTROL : 0);
+    meta = (meta & (uint8_t)~POLL_FLAG_CONTROL) | (keydown ? POLL_FLAG_CONTROL : 0);
   } else if(key == PS2_KEY_LSHIFT) {
-    meta = (meta & (uint8_t)~POLL_FLAG_LSHIFT) | (state ? POLL_FLAG_LSHIFT : 0);
+    meta = (meta & (uint8_t)~POLL_FLAG_LSHIFT) | (keydown ? POLL_FLAG_LSHIFT : 0);
   } else if(key == PS2_KEY_RSHIFT) {
-    meta = (meta & (uint8_t)~POLL_FLAG_RSHIFT) | (state ? POLL_FLAG_RSHIFT : 0);
+    meta = (meta & (uint8_t)~POLL_FLAG_RSHIFT) | (keydown ? POLL_FLAG_RSHIFT : 0);
   }
-  if((meta & POLL_FLAG_CTRL_ALT) == POLL_FLAG_CTRL_ALT && key == (0x80 | PS2_KEY_DELETE) && state) {
+  if((meta & POLL_FLAG_CTRL_ALT) == POLL_FLAG_CTRL_ALT && key == (0x80 | PS2_KEY_DELETE) && keydown) {
     // CTRL/ALT/DEL is pressed.
     // bring RESET line low
     reset_set_lo();
     _delay_us(1);
     reset_set_hi();
-  } else if(mode_config() && (meta&POLL_FLAG_CTRL_ALT) == POLL_FLAG_CTRL_ALT && key == PS2_KEY_BS && state) {
+  } else if(mode_config() && (meta&POLL_FLAG_CTRL_ALT) == POLL_FLAG_CTRL_ALT && key == PS2_KEY_BS && keydown) {
     // CTRL/ALT/BS config mode
     config ^= KB_CONFIG;
     if(!config) {
@@ -810,10 +879,10 @@ static void parse_key(uint8_t key, uint8_t state) {
       ps2_putc(CALC_RATE(type_delay, type_rate));
     }
   } else if (config) {
-    if(state) { // set parms on keydown
+    if(keydown) { // set parms on keydown
       set_options(key);
     }
-  } else if (state) {
+  } else if (keydown) {
     switch (key) {
       case PS2_KEY_CAPS_LOCK:
         if(meta & POLL_FLAG_CAPS_LOCK) {
@@ -849,17 +918,11 @@ static void parse_key(uint8_t key, uint8_t state) {
         ps2_putc(led_state);
         break;
       default:
-        code = ps2_to_ascii(key);
-        if(code)
-          send_raw(code);
-        if((globalopts & OPT_CRLF) && code == 13 && !(meta & POLL_FLAG_CONTROL) )
-          send_raw(10);
+        ps2_to_ascii(key);
         break;
     }
   }
-  code = ps2_to_xt(key,state);
-  if(code)
-    xt_putc(code);
+  ps2_to_xt(key,keydown);
 }
 
 static inline __attribute__((always_inline)) void poll_kb(void) {

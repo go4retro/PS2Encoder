@@ -97,7 +97,6 @@ static void ps2_disable_timer(void) {
 }
 
 static void ps2_write_byte(void) {
-// TODO need to split this up so that the byte is not committed until successful transmission
   uint8_t tmp;
   /* Calculate buffer index */
   tmp = ( rx_head + 1 ) & PS2_RX_BUFFER_MASK;

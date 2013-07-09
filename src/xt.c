@@ -58,7 +58,6 @@ static void xt_enable_clk_rise(void) {
   XT_CLK_INTCR |= _BV(XT_CLK_INT);
 }
 
-#ifdef XT_ENABLE_HOST
 static void xt_enable_clk_fall(void) {
   // turn off IRQ
   XT_CLK_INTCR &= (uint8_t)~_BV(XT_CLK_INT);
@@ -73,7 +72,6 @@ static void xt_enable_clk_fall(void) {
   // turn on
   XT_CLK_INTCR |= _BV(XT_CLK_INT);
 }
-#endif
 
 static inline __attribute__((always_inline)) void xt_disable_clk(void) {
   XT_CLK_INTCR &= (uint8_t)~_BV(XT_CLK_INT);
@@ -181,7 +179,6 @@ static inline __attribute__((always_inline)) void xt_host_clk_irq(void) {
 }
 
 static void xt_host_init(void) {
-  xt_enable_clk_fall();
 }
 #endif
 
@@ -241,6 +238,7 @@ static void xt_device_check_data(void) {
   } else {
     xt_state = XT_ST_IDLE;
     xt_disable_timer();
+    xt_enable_clk_fall();
   }
 }
 
@@ -287,11 +285,10 @@ static inline __attribute__((always_inline)) void xt_device_timer_irq(void) {
       break;
     case XT_ST_HOLDOFF:
       // we timed out
-      if(!xt_read_clk() && xt_holdoff_count < 254)
+      if(xt_holdoff_count == 0)
+        uart_putc('T');
+      if(xt_holdoff_count < 254)
         xt_holdoff_count++;
-      else if(xt_read_data()) {
-        xt_device_check_data();
-      }
       break;
     default:
       xt_disable_timer();
@@ -304,15 +301,19 @@ static inline __attribute__((always_inline)) void xt_device_clk_irq(void) {
 
   switch(xt_state) {
     case XT_ST_IDLE:
+      uart_putc('H');
       // host is holding us off.  Might be trying to reset. Wait for CLK hi...
       xt_device_holdoff();
       break;
     case XT_ST_HOLDOFF:
+      xt_disable_timer();
       if(xt_holdoff_count >= 60) {
-        //reset
-      } else if (xt_read_data()) {
-        xt_device_check_data();
+        xt_putc(0xaa);  // TODO fix this so this bytes goes out next.
       }
+      if (xt_read_data()) {
+        xt_device_check_data();
+      } else
+        xt_state = XT_ST_IDLE;
       break;
     default:
       break;
@@ -349,7 +350,9 @@ uint8_t xt_data_available( void ) {
 
 #ifdef XT_ENABLE_DEVICE
 void xt_putc( uint8_t data ) {
+
   uint8_t tmphead;
+
   // Calculate buffer index
   tmphead = ( head + 1 ) & XT_BUFFER_MASK;
   while ( tmphead == tail ) {
@@ -382,4 +385,5 @@ void xt_init(xtmode_t mode) {
 
   xt_state = XT_ST_IDLE;
   XT_CALL(xt_device_init(),xt_host_init());
+  xt_enable_clk_fall();
 }

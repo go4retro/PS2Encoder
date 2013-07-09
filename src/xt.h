@@ -28,124 +28,137 @@
 
 
 #ifndef XT_BUFFER_SHIFT
-#define XT_BUFFER_SHIFT   3
+#define XT_BUFFER_SHIFT     5
 #endif
 
 #ifndef XT_CLK_DDR
-#  define XT_CLK_DDR    DDRB
-#  define XT_CLK_OUT    PORTB
-#  define XT_CLK_IN     PINB
-#  define XT_CLK_PIN    _BV(PB5)
-#  define XT_DATA_DDR   DDRB
-#  define XT_DATA_OUT   PORTB
-#  define XT_DATA_IN    PINB
-#  define XT_DATA_PIN   _BV(PB4)
+#  define XT_CLK_DDR        DDRB
+#  define XT_CLK_OUT        PORTB
+#  define XT_CLK_IN         PINB
+#  define XT_CLK_PIN        _BV(PB5)
+#  define XT_DATA_DDR       DDRB
+#  define XT_DATA_OUT       PORTB
+#  define XT_DATA_IN        PINB
+#  define XT_DATA_PIN       _BV(PB4)
 #endif
 
 typedef enum { XT_MODE_DEVICE = 1, XT_MODE_HOST = 2 } xtmode_t;
 
+#define XT_KEY_EXT          0xe0
+#define XT_KEY_EXT_2        0xe1
+
 // normal keys
-#define XT_KEY_BACKQUOTE     1
-#define XT_KEY_1             2
-#define XT_KEY_2             3
-#define XT_KEY_3             4
-#define XT_KEY_4             5
-#define XT_KEY_5             6
-#define XT_KEY_6             7
-#define XT_KEY_7             8
-#define XT_KEY_8             9
-#define XT_KEY_9             10
-#define XT_KEY_0             11
-#define XT_KEY_MINUS         12
-#define XT_KEY_EQUALS        13
-#define XT_KEY_BS            15
-#define XT_KEY_TAB           16
-#define XT_KEY_Q             17
-#define XT_KEY_W             18
-#define XT_KEY_E             19
-#define XT_KEY_R             20
-#define XT_KEY_T             21
-#define XT_KEY_Y             22
-#define XT_KEY_U             23
-#define XT_KEY_I             24
-#define XT_KEY_O             25
-#define XT_KEY_P             26
-#define XT_KEY_LBRACKET      27
-#define XT_KEY_RBRACKET      28
-#define XT_KEY_BACKSLASH     29
-#define XT_KEY_CAPS_LOCK     30
-#define XT_KEY_A             31
-#define XT_KEY_S             32
-#define XT_KEY_D             33
-#define XT_KEY_F             34
-#define XT_KEY_G             35
-#define XT_KEY_H             36
-#define XT_KEY_J             37
-#define XT_KEY_K             38
-#define XT_KEY_L             39
-#define XT_KEY_SEMICOLON     40
-#define XT_KEY_APOSTROPHE    41
-#define XT_KEY_ENTER         43
-#define XT_KEY_LSHIFT        44
-#define XT_KEY_Z             46
-#define XT_KEY_X             47
-#define XT_KEY_C             48
-#define XT_KEY_V             49
-#define XT_KEY_B             50
-#define XT_KEY_N             51
-#define XT_KEY_M             52
-#define XT_KEY_COMMA         53
-#define XT_KEY_PERIOD        54
-#define XT_KEY_SLASH         55
-#define XT_KEY_RSHIFT        57
-#define XT_KEY_LCTRL         58
-#define XT_KEY_ALT           60
-#define XT_KEY_SPACE         61
-#define XT_KEY_RALT          62
-#define XT_KEY_RCTRL         64
-#define XT_KEY_INSERT        75
-#define XT_KEY_DELETE        76
-#define XT_KEY_CRSR_LEFT     79
-#define XT_KEY_HOME          80
-#define XT_KEY_END           81
-#define XT_KEY_CRSR_UP       83
-#define XT_KEY_CRSR_DOWN     84
-#define XT_KEY_PAGE_UP       85
-#define XT_KEY_PAGE_DOWN     86
-#define XT_KEY_CRSR_RIGHT    89
-#define XT_KEY_NUM_LOCK      90
-#define XT_KEY_NUM_7         91
-#define XT_KEY_NUM_4         92
-#define XT_KEY_NUM_1         93
-#define XT_KEY_NUM_SLASH     95
-#define XT_KEY_NUM_8         96
-#define XT_KEY_NUM_5         97
-#define XT_KEY_NUM_2         98
-#define XT_KEY_NUM_0         99
-#define XT_KEY_NUM_STAR      100
-#define XT_KEY_NUM_9         101
-#define XT_KEY_NUM_6         102
-#define XT_KEY_NUM_3         103
-#define XT_KEY_NUM_PERIOD    104
-#define XT_KEY_NUM_MINUS     105
-#define XT_KEY_NUM_PLUS      106
-#define XT_KEY_NUM_ENTER     108
-#define XT_KEY_ESC           110
-#define XT_KEY_F1            112
-#define XT_KEY_F2            113
-#define XT_KEY_F3            114
-#define XT_KEY_F4            115
-#define XT_KEY_F5            116
-#define XT_KEY_F6            117
-#define XT_KEY_F7            118
-#define XT_KEY_F8            119
-#define XT_KEY_F9            120
-#define XT_KEY_F10           121
-#define XT_KEY_F11           122
-#define XT_KEY_F12           123
-#define XT_KEY_PRINT_SCREEN  124
-#define XT_KEY_SCROLL_LOCK   125
-#define XT_KEY_PAUSE         126
+#define XT_KEY_ESC          0x01
+#define XT_KEY_1            0x02
+#define XT_KEY_2            0x03
+#define XT_KEY_3            0x04
+#define XT_KEY_4            0x05
+#define XT_KEY_5            0x06
+#define XT_KEY_6            0x07
+#define XT_KEY_7            0x08
+#define XT_KEY_8            0x09
+#define XT_KEY_9            0x0A
+#define XT_KEY_0            0x0B
+#define XT_KEY_MINUS        0x0C
+#define XT_KEY_EQUALS       0x0D
+#define XT_KEY_BS           0x0E
+#define XT_KEY_TAB          0x0F
+#define XT_KEY_Q            0x10
+#define XT_KEY_W            0x11
+#define XT_KEY_E            0x12
+#define XT_KEY_R            0x13
+#define XT_KEY_T            0x14
+#define XT_KEY_Y            0x15
+#define XT_KEY_U            0x16
+#define XT_KEY_I            0x17
+#define XT_KEY_O            0x18
+#define XT_KEY_P            0x19
+#define XT_KEY_LBRACKET     0x1A
+#define XT_KEY_RBRACKET     0x1B
+#define XT_KEY_ENTER        0x1C
+#define XT_KEY_LCTRL        0x1D
+#define XT_KEY_A            0x1E
+#define XT_KEY_S            0x1F
+#define XT_KEY_D            0x20
+#define XT_KEY_F            0x21
+#define XT_KEY_G            0x22
+#define XT_KEY_H            0x23
+#define XT_KEY_J            0x24
+#define XT_KEY_K            0x25
+#define XT_KEY_L            0x26
+#define XT_KEY_SEMICOLON    0x27
+#define XT_KEY_APOSTROPHE   0x28
+#define XT_KEY_BACKQUOTE    0x29
+#define XT_KEY_LSHIFT       0x2A
+#define XT_KEY_BACKSLASH    0x2B
+#define XT_KEY_INT2         0x2B
+#define XT_KEY_Z            0x2C
+#define XT_KEY_X            0x2D
+#define XT_KEY_C            0x2E
+#define XT_KEY_V            0x2F
+#define XT_KEY_B            0x30
+#define XT_KEY_N            0x31
+#define XT_KEY_M            0x32
+#define XT_KEY_COMMA        0x33
+#define XT_KEY_PERIOD       0x34
+#define XT_KEY_SLASH        0x35
+#define XT_KEY_RSHIFT       0x36
+#define XT_KEY_NUM_STAR     0x37
+#define XT_KEY_ALT          0x38
+#define XT_KEY_SPACE        0x39
+#define XT_KEY_CAPS_LOCK    0x3A
+#define XT_KEY_F1           0x3B
+#define XT_KEY_F2           0x3C
+#define XT_KEY_F3           0x3D
+#define XT_KEY_F4           0x3E
+#define XT_KEY_F5           0x3F
+#define XT_KEY_F6           0x40
+#define XT_KEY_F7           0x41
+#define XT_KEY_F8           0x42
+#define XT_KEY_F9           0x43
+#define XT_KEY_F10          0x44
+#define XT_KEY_NUM_LOCK     0x45
+#define XT_KEY_SCROLL_LOCK  0x46
+#define XT_KEY_NUM_7        0x47
+#define XT_KEY_NUM_9        0x49
+#define XT_KEY_NUM_MINUS    0x4A
+#define XT_KEY_NUM_4        0x4B
+#define XT_KEY_NUM_6        0x4D
+#define XT_KEY_NUM_PLUS     0x4E
+#define XT_KEY_NUM_1        0x4F
+#define XT_KEY_NUM_8        0x48
+#define XT_KEY_NUM_5        0x4C
+#define XT_KEY_NUM_2        0x50
+#define XT_KEY_NUM_3        0x51
+#define XT_KEY_NUM_0        0x52
+#define XT_KEY_NUM_PERIOD   0x53
+#define XT_KEY_INT1         0x56
+#define XT_KEY_F11          0x57
+#define XT_KEY_F12          0x58
+
+
+// extended keys
+#define XT_KEY_NUM_ENTER    0x1c
+#define XT_KEY_RCTRL        0x1d
+#define XT_KEY_NUM_SLASH    0x35
+#define XT_KEY_RALT         0x38
+#define XT_KEY_HOME         0x47
+#define XT_KEY_CRSR_UP      0x48
+#define XT_KEY_PAGE_UP      0x49
+#define XT_KEY_CRSR_LEFT    0x4b
+#define XT_KEY_CRSR_RIGHT   0x4d
+#define XT_KEY_END          0x4f
+#define XT_KEY_CRSR_DOWN    0x50
+#define XT_KEY_PAGE_DOWN    0x51
+#define XT_KEY_INSERT       0x52
+#define XT_KEY_DELETE       0x53
+
+//significantly extended keys
+//E02A E037
+#define XT_KEY_PRINT_SCREEN 0x37
+//E11D 45 E19D C5
+#define XT_KEY_PAUSE        0x45
+
 
 #define XT_BUFFER_MASK   (_BV(XT_BUFFER_SHIFT) - 1)
 

@@ -89,6 +89,7 @@ typedef enum { PS2_MODE_DEVICE = 1, PS2_MODE_HOST = 2 } ps2mode_t;
 #define PS2_KEY_P             0x4d
 #define PS2_KEY_MINUS         0x4e
 #define PS2_KEY_APOSTROPHE    0x52
+#define PS2_KEY_INT2          0x53
 #define PS2_KEY_LBRACKET      0x54
 #define PS2_KEY_EQUALS        0x55
 #define PS2_KEY_CAPS_LOCK     0x58
@@ -96,6 +97,7 @@ typedef enum { PS2_MODE_DEVICE = 1, PS2_MODE_HOST = 2 } ps2mode_t;
 #define PS2_KEY_ENTER         0x5a
 #define PS2_KEY_RBRACKET      0x5b
 #define PS2_KEY_BACKSLASH     0x5d
+#define PS2_KEY_INT1          0x61
 #define PS2_KEY_BS            0x66
 #define PS2_KEY_NUM_1         0x69
 #define PS2_KEY_NUM_4         0x6b
@@ -133,10 +135,12 @@ typedef enum { PS2_MODE_DEVICE = 1, PS2_MODE_HOST = 2 } ps2mode_t;
 #define PS2_KEY_CRSR_RIGHT    0x74
 #define PS2_KEY_CRSR_UP       0x75
 #define PS2_KEY_PAGE_DOWN     0x7a
-#define PS2_KEY_PRINT_SCREEN  0x7c
 #define PS2_KEY_PAGE_UP       0x7d
 
-// new ones
+// significantly extended keys
+// E012E07C
+#define PS2_KEY_PRINT_SCREEN  0x7c
+// E11477E1F014F077
 #define PS2_KEY_PCTRL         0x14
 #define PS2_KEY_PAUSE         0x77
 

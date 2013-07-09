@@ -35,8 +35,11 @@
 #endif
 
 // log2 of the PS2 buffer size, i.e. 6 for 64, 7 for 128, 8 for 256 etc.
-#define PS2_RX_BUFFER_SHIFT   3
-#define PS2_TX_BUFFER_SHIFT   3
+#define PS2_RX_BUFFER_SHIFT   5
+#define PS2_TX_BUFFER_SHIFT   5
+
+// log2 of the XT buffer size, i.e. 6 for 64, 7 for 128, 8 for 256 etc.
+#define XT_BUFFER_SHIFT     5
 
 #define ENABLE_UART0
 // log2 of the UART buffer size, i.e. 6 for 64, 7 for 128, 8 for 256 etc.
