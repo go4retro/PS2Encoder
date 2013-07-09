@@ -72,7 +72,6 @@ static inline __attribute__((always_inline)) void data_strobe_hi(void) {
   PORTD |= _BV(PD7);
 }
 
-<<<<<<< .mine
 static inline __attribute__((always_inline)) void data_strobe_lo(void) {
   PORTD &= ~_BV(PD7);
 }
@@ -141,69 +140,6 @@ static inline __attribute__((always_inline)) void timer_init (void) {
 
 //#  define TIMER_vect          TIMER0_COMPA_vect
 #  define TIMER_vect          TIMER1_COMPA_vect
-=======
-static inline __attribute__((always_inline)) void data_strobe_lo(void) {
-  PORTD &= ~_BV(PD7);
-}
-
-static inline __attribute__((always_inline)) void reset_init(void) {
-  DDRD |= _BV(PD6);
-  PORTD |= _BV(PD6);
-}
-
-static inline __attribute__((always_inline)) void reset_set_hi(void) {
-  PORTD |= _BV(PD6);
-}
-
-static inline __attribute__((always_inline)) void reset_set_lo(void) {
-  PORTD &= ~_BV(PD6);
-}
-
-static inline __attribute__((always_inline)) void mode_init(void) {
-  DDRD &= ~_BV(PD5);
-  PORTD |= _BV(PD5);
-  DDRD &= ~_BV(PD4);
-  PORTD |= _BV(PD4);
-}
-
-// this must return non-zero for config mode
-static inline __attribute__((always_inline)) uint8_t mode_config(void) {
-  return !(PIND & _BV(PD5));
-}
-
-// this must return non-zero for device mode
-static inline __attribute__((always_inline)) uint8_t mode_device(void) {
-  return !(PIND & _BV(PD4));
-}
-
-#  define SW_RX_BUFFER_SHIFT  2
-#  define PORT_SW_OUT         PORTB
-#  define PORT_SW_IN          PINB
-#  define PORT_SW_DDR         DDRB
-#  define SW_A                (PB4)
-#  define SW_B                (PB5)
-// can't use with Xtal
-//#  define SW_C                (PB6)
-//#  define SW_D                (PB7)
-
-#  define MAT_RX_BUFFER_SHIFT 4
-#  define MAT_ROW_LO_DDR      DDRB
-#  define MAT_ROW_LO_OUT      PORTB
-#  define MAT_ROW_MASK        0x0f
-#  define MAT_COL_LO_DDR      DDRC
-#  define MAT_COL_LO_OUT      PORTC
-#  define MAT_COL_LO_IN       PINC
-#  define MAT_COL_MASK        0x0f
-
-static inline __attribute__((always_inline)) void timer_init (void) {
-  TCCR0A |= _BV(WGM01);
-  TCCR0B |= (_BV(CS02) | _BV(CS00));
-  OCR0A = 65;
-  TIMSK0 |= _BV(OCIE0A);
-}
-
-#  define TIMER_vect          TIMER0_COMPA_vect
->>>>>>> .r52
 #endif
 
 #endif /*CONFIG_H*/

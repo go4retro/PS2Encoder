@@ -48,7 +48,6 @@ CONFIG_UART_BAUDRATE=9600
 # Select which hardware to compile for
 # Valid values:
 #   1 - v1 board
-#   2 - v3 Board
 CONFIG_HARDWARE_VARIANT=1
 
 # Track the stack size
@@ -56,5 +55,5 @@ CONFIG_HARDWARE_VARIANT=1
 CONFIG_STACK_TRACKING=n
 
 CONFIG_EFUSE=0x01
-CONFIG_HFUSE=0xdc
+CONFIG_HFUSE=0xd7
 CONFIG_LFUSE=0xff

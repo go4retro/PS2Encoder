@@ -97,6 +97,7 @@ static void ps2_disable_timer(void) {
 }
 
 static void ps2_write_byte(void) {
+// TODO need to split this up so that the byte is not committed until successful transmission
   uint8_t tmp;
   /* Calculate buffer index */
   tmp = ( rx_head + 1 ) & PS2_RX_BUFFER_MASK;
@@ -116,10 +117,6 @@ static void ps2_read_byte(void) {
 
 static void ps2_commit_read_byte(void) {
   tx_tail = ( tx_tail + 1 ) & PS2_TX_BUFFER_MASK;      /* Store new index */
-}
-
-static uint8_t ps2_data_to_send(void) {
-  return ( tx_head != tx_tail );
 }
 
 static void ps2_write_bit(void) {
@@ -198,29 +195,27 @@ static void ps2_trigger_send(void) {
   PS2_CALL(ps2_device_trigger_send(),ps2_host_trigger_send());
 }
 
-#ifdef PS2_ENABLE_HOST
-static void ps2_host_check_for_data(void) {
-  if(ps2_data_to_send() != 0) {
+
+static void ps2_check_for_data(void) {
+  // do we have data to send?
+  if( tx_head != tx_tail) {
     ps2_trigger_send();
   } else {
-    // wait for something to receive
     ps2_state = PS2_ST_IDLE;
+    ps2_disable_timer();  // TODO check if this is needed for host mode as well.
     ps2_enable_clk_fall();
   }
 }
 
-<<<<<<< .mine
+#ifdef PS2_ENABLE_HOST
 static inline __attribute__((always_inline)) void ps2_host_timer_irq(void) {
-=======
-static inline void ps2_host_timer_irq(void) {
->>>>>>> .r52
   ps2_disable_timer();
   switch (ps2_state) {
     case PS2_ST_GET_BIT:
     case PS2_ST_GET_PARITY:
     case PS2_ST_GET_STOP:
       // do we have data to send to keyboard?
-      ps2_host_check_for_data();
+      ps2_check_for_data();
       break;
     case PS2_ST_PREP_START:
       // we waited 100uS for device to notice us, bring DATA low and CLK hi
@@ -235,7 +230,6 @@ static inline void ps2_host_timer_irq(void) {
         // really start bit...
         // now, wait for falling CLK
         ps2_enable_clk_fall();
-        //ps2_state = PS2_ST_SEND_START;  JLB incorrect
         ps2_state = PS2_ST_PREP_BIT;
         ps2_read_byte();
       }
@@ -246,12 +240,7 @@ static inline void ps2_host_timer_irq(void) {
 }
 
 
-<<<<<<< .mine
 static inline __attribute__((always_inline)) void ps2_host_clk_irq(void) {
-=======
-static void ps2_host_clk_irq(void) __attribute__((always_inline));
-static inline void ps2_host_clk_irq(void) {
->>>>>>> .r52
   switch(ps2_state) {
     case PS2_ST_WAIT_RESPONSE:
     case PS2_ST_IDLE:
@@ -291,7 +280,7 @@ static inline void ps2_host_clk_irq(void) {
     case PS2_ST_HOLDOFF:
       // CLK rose, so now, check for more data.
       // do we have data to send to keyboard?
-      ps2_host_check_for_data();
+      ps2_check_for_data();
       break;
 //    case PS2_ST_SEND_START:
 //      ps2_state = PS2_ST_PREP_BIT;
@@ -332,22 +321,10 @@ static inline void ps2_host_clk_irq(void) {
 }
 
 static void ps2_host_init(void) {
-  ps2_enable_clk_fall();
 }
 #endif
 
 #ifdef PS2_ENABLE_DEVICE
-static void ps2_device_check_data(void) {
-  // do we have data to send?
-  if(ps2_data_to_send()) {
-    ps2_trigger_send();
-  } else {
-    ps2_state = PS2_ST_IDLE;
-    ps2_disable_timer();
-    ps2_enable_clk_fall();
-  }
-}
-
 static void ps2_device_host_inhibit(void) {
   // CLK is low.  Host wants to talk to us.
   // turn off timer
@@ -360,18 +337,10 @@ static void ps2_device_host_inhibit(void) {
 }
 
 
-<<<<<<< .mine
 static inline __attribute__((always_inline)) void ps2_device_timer_irq(void) {
-=======
-static void ps2_device_timer_irq(void) __attribute__((always_inline));
-static inline void ps2_device_timer_irq(void) {
->>>>>>> .r52
   switch (ps2_state) {
     case PS2_ST_PREP_START:
-      // disable the CLK IRQ
-      // TODO I think this disable can be removed, but I'm leaving it in for now.
-      ps2_disable_clk();
-      // clk the start bit
+      // clk the start bit, which is already been cleared.
       ps2_clear_clk();
       ps2_state = PS2_ST_SEND_START;
       break;
@@ -520,7 +489,7 @@ static inline void ps2_device_timer_irq(void) {
       if(!ps2_holdoff_count) {
         if(ps2_read_clk()) {
           if(ps2_read_data()) {
-            ps2_device_check_data();
+            ps2_check_for_data();
           } else {
             ps2_state = PS2_ST_WAIT_START;
           }
@@ -536,12 +505,7 @@ static inline void ps2_device_timer_irq(void) {
 }
 
 
-<<<<<<< .mine
 static inline __attribute__((always_inline)) void ps2_device_clk_irq(void) {
-=======
-static void ps2_device_clk_irq(void) __attribute__((always_inline));
-static inline void ps2_device_clk_irq(void) {
->>>>>>> .r52
   ps2_disable_clk();
 
   switch(ps2_state) {
@@ -554,7 +518,7 @@ static inline void ps2_device_clk_irq(void) {
       // CLK went hi
       if(ps2_read_data()) {
         // we can send if we need to.
-        ps2_device_check_data();
+        ps2_check_for_data();
       } else {
         // host wants to send data, CLK is high.
         // wait half cycle to let things settle.
@@ -569,13 +533,6 @@ static inline void ps2_device_clk_irq(void) {
 }
 
 static void ps2_device_init(void) {
-  ps2_disable_clk();
-  ps2_disable_timer();
-  ps2_set_clk();
-  ps2_set_data();
-  // wait 600mS.
-  _delay_ms(600);
-  ps2_putc(PS2_CMD_BAT);
 }
 #endif
 
@@ -628,8 +585,7 @@ uint8_t ps2_data_available( void ) {
 }
 
 void ps2_init(ps2mode_t mode) {
-  // set prescaler to System Clock/8
-  PS2_TCCR = PS2_TCCR_DATA;
+  ps2_init_timer();
 
   ps2_mode = mode;
   ps2_clear_buffers();
@@ -638,5 +594,6 @@ void ps2_init(ps2mode_t mode) {
   ps2_set_data();
 
   ps2_state = PS2_ST_IDLE;
+  ps2_enable_clk_fall();
   PS2_CALL(ps2_device_init(),ps2_host_init());
 }

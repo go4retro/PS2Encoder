@@ -31,10 +31,13 @@ typedef enum { PS2_MODE_DEVICE = 1, PS2_MODE_HOST = 2 } ps2mode_t;
 
 
 // normal keys
+#define PS2_KEY_F9            0x01
 #define PS2_KEY_F5            0x03
 #define PS2_KEY_F3            0x04
 #define PS2_KEY_F1            0x05
 #define PS2_KEY_F2            0x06
+#define PS2_KEY_F12           0x07
+#define PS2_KEY_F10           0x09
 #define PS2_KEY_F8            0x0a
 #define PS2_KEY_F6            0x0b
 #define PS2_KEY_F4            0x0c
@@ -105,10 +108,15 @@ typedef enum { PS2_MODE_DEVICE = 1, PS2_MODE_HOST = 2 } ps2mode_t;
 #define PS2_KEY_NUM_8         0x75
 #define PS2_KEY_ESC           0x76
 #define PS2_KEY_NUM_LOCK      0x77
+#define PS2_KEY_F11           0x78
+#define PS2_KEY_NUM_PLUS      0x79
 #define PS2_KEY_NUM_3         0x7a
+#define PS2_KEY_NUM_MINUS     0x7b
+#define PS2_KEY_NUM_STAR      0x7c
 #define PS2_KEY_NUM_9         0x7d
 #define PS2_KEY_SCROLL_LOCK   0x7e
 #define PS2_KEY_F7            0x83
+
 
 // extended keys
 #define PS2_KEY_RALT          0x11
@@ -214,8 +222,10 @@ typedef enum { PS2_MODE_DEVICE = 1, PS2_MODE_HOST = 2 } ps2mode_t;
 #  define PS2_TIMER_COMP_vect   TIMER2_COMP_vect
 #  define PS2_OCR               OCR2
 #  define PS2_TCNT              TCNT2
-#  define PS2_TCCR              TCCR2
-#  define PS2_TCCR_DATA         _BV(CS21)
+#  define PS2_TCCR1             TCCR2
+#  define PS2_TCCR1_DATA        _BV(CS21)
+#  define PS2_TCCR2             TCCR2
+#  define PS2_TCCR2_DATA        _BV(WGM21)
 #  define PS2_TIFR              TIFR
 #  define PS2_TIFR_DATA         _BV(OCF2)
 #  define PS2_TIMSK             TIMSK
@@ -226,8 +236,10 @@ typedef enum { PS2_MODE_DEVICE = 1, PS2_MODE_HOST = 2 } ps2mode_t;
 #  define PS2_TIMER_COMP_vect   TIMER2_COMPA_vect
 #  define PS2_OCR               OCR2A
 #  define PS2_TCNT              TCNT2
-#  define PS2_TCCR              TCCR2B
-#  define PS2_TCCR_DATA         _BV(CS21)
+#  define PS2_TCCR1             TCCR2B
+#  define PS2_TCCR1_DATA        _BV(CS21)
+#  define PS2_TCCR2             TCCR2A
+#  define PS2_TCCR2_DATA        _BV(WGM21)
 #  define PS2_TIFR              TIFR2
 #  define PS2_TIFR_DATA         _BV(OCF2A)
 #  define PS2_TIMSK             TIMSK2
@@ -238,8 +250,10 @@ typedef enum { PS2_MODE_DEVICE = 1, PS2_MODE_HOST = 2 } ps2mode_t;
 #  define PS2_TIMER_COMP_vect   TIMER0_COMP_vect
 #  define PS2_OCR               OCR0
 #  define PS2_TCNT              TCNT0
-#  define PS2_TCCR              TCCR0
-#  define PS2_TCCR_DATA         (_BV(CS01) | _BV(WGM01))
+#  define PS2_TCCR1             TCCR0
+#  define PS2_TCCR1_DATA        _BV(CS01)
+#  define PS2_TCCR2             TCCR0
+#  define PS2_TCCR2_DATA        _BV(WGM01)
 #  define PS2_TIFR              TIFR
 #  define PS2_TIFR_DATA         _BV(OCF0)
 #  define PS2_TIMSK             TIMSK
@@ -251,7 +265,7 @@ typedef enum { PS2_MODE_DEVICE = 1, PS2_MODE_HOST = 2 } ps2mode_t;
 
 
 
-#define PS2_HALF_CYCLE 40 // ~42 uS when all is said and done.
+#define PS2_HALF_CYCLE 36
 #define PS2_SEND_HOLDOFF_COUNT  ((uint8_t)(2140/PS2_HALF_CYCLE))
 
 typedef enum {PS2_ST_IDLE
@@ -278,6 +292,13 @@ typedef enum {PS2_ST_IDLE
              ,PS2_ST_HOST_INHIBIT
              ,PS2_ST_WAIT_RESPONSE
              } ps2state_t;
+
+static inline __attribute__((always_inline)) void ps2_init_timer(void) {
+  // set prescaler to System Clock/8
+  PS2_TCCR1 |= PS2_TCCR1_DATA;
+  // CTC mode
+  PS2_TCCR2 |= PS2_TCCR2_DATA;
+}
 
 static inline __attribute__((always_inline)) void ps2_set_clk(void) {
   PS2_CLK_OUT |= PS2_CLK_PIN;
