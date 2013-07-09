@@ -147,126 +147,131 @@ typedef enum { XT_MODE_DEVICE = 1, XT_MODE_HOST = 2 } xtmode_t;
 #define XT_KEY_PAGE_UP      0x49
 #define XT_KEY_CRSR_LEFT    0x4b
 #define XT_KEY_CRSR_RIGHT   0x4d
-#define XT_KEY_END          0x4f
-#define XT_KEY_CRSR_DOWN    0x50
-#define XT_KEY_PAGE_DOWN    0x51
-#define XT_KEY_INSERT       0x52
-#define XT_KEY_DELETE       0x53
+#define XT_KEY_END              0x4f
+#define XT_KEY_CRSR_DOWN        0x50
+#define XT_KEY_PAGE_DOWN        0x51
+#define XT_KEY_INSERT           0x52
+#define XT_KEY_DELETE           0x53
 
 //significantly extended keys
 //E02A E037
-#define XT_KEY_PRINT_SCREEN 0x37
+#define XT_KEY_PRINT_SCREEN     0x37
 //E11D 45 E19D C5
-#define XT_KEY_PAUSE        0x45
+#define XT_KEY_PAUSE            0x45
 
 
 #define XT_BUFFER_MASK   (_BV(XT_BUFFER_SHIFT) - 1)
 
 /* PS2 Clock INT */
 #if defined __AVR_ATmega8__ ||  defined __AVR_ATmega16__ || defined __AVR_ATmega32__ || defined __AVR_ATmega162__
-//#  define XT_CLK_INTDR     MCUCR     // INT Direction Register
-//#  define XT_CLK_INTCR     GICR      // INT Control Register
-//#  define XT_CLK_INTFR     GIFR      // INT Flag Register
+//#  define XT_CLK_INTDR        MCUCR     // INT Direction Register
+//#  define XT_CLK_INTCR        GICR      // INT Control Register
+//#  define XT_CLK_INTFR        GIFR      // INT Flag Register
 //#  if XT_PIN_CLK == _BV(PD3)
-//#    define XT_CLK_ISC0      ISC10
-//#    define XT_CLK_ISC1      ISC11
-//#    define XT_CLK_INT       INT1
-//#    define XT_CLK_INTF      INTF1
-//#    define XT_CLK_INT_vect  INT1_vect
+//#    define XT_CLK_ISC0       ISC10
+//#    define XT_CLK_ISC1       ISC11
+//#    define XT_CLK_INT        INT1
+//#    define XT_CLK_INTF       INTF1
+//#    define XT_CLK_INT_vect   INT1_vect
 //#  else
-//#    define XT_CLK_ISC0      ISC00
-//#    define XT_CLK_ISC1      ISC01
-//#    define XT_CLK_INT       INT0
-//#    define XT_CLK_INTF      INTF0
-//#    define XT_CLK_INT_vect  INT0_vect
+//#    define XT_CLK_ISC0       ISC00
+//#    define XT_CLK_ISC1       ISC01
+//#    define XT_CLK_INT        INT0
+//#    define XT_CLK_INTF       INTF0
+//#    define XT_CLK_INT_vect   INT0_vect
 //#  endif
 #elif defined __AVR_ATmega28__ || defined __AVR_ATmega48__ || defined __AVR_ATmega88__ || defined __AVR_ATmega168__
 #  if XT_CLK_PIN == _BV(PD3)
-#    define XT_CLK_INTDR     EICRA     // INT Direction Register
-#    define XT_CLK_INTCR     EIMSK     // INT Control Register
-#    define XT_CLK_INTFR     EIFR      // INT Flag Register
-#    define XT_CLK_ISC0      ISC10
-#    define XT_CLK_ISC1      ISC11
-#    define XT_CLK_INT       INT1
-#    define XT_CLK_INTF      INTF1
-#    define XT_CLK_INT_vect  INT1_vect
+#    define XT_CLK_INTDR        EICRA     // INT Direction Register
+#    define XT_CLK_INTCR        EIMSK     // INT Control Register
+#    define XT_CLK_INTFR        EIFR      // INT Flag Register
+#    define XT_CLK_ISC0         ISC10
+#    define XT_CLK_ISC1         ISC11
+#    define XT_CLK_INT          INT1
+#    define XT_CLK_INTF         INTF1
+#    define XT_CLK_INT_vect     INT1_vect
 #  elif XT_CLK_PIN == _BV(PD2)
-#    define XT_CLK_INTDR     EICRA     // INT Direction Register
-#    define XT_CLK_INTCR     EIMSK     // INT Control Register
-#    define XT_CLK_INTFR     EIFR      // INT Flag Register
-#    define XT_CLK_ISC0      ISC00
-#    define XT_CLK_ISC1      ISC01
-#    define XT_CLK_INT       INT0
-#    define XT_CLK_INTF      INTF0
-#    define XT_CLK_INT_vect  INT0_vect
+#    define XT_CLK_INTDR        EICRA     // INT Direction Register
+#    define XT_CLK_INTCR        EIMSK     // INT Control Register
+#    define XT_CLK_INTFR        EIFR      // INT Flag Register
+#    define XT_CLK_ISC0         ISC00
+#    define XT_CLK_ISC1         ISC01
+#    define XT_CLK_INT          INT0
+#    define XT_CLK_INTF         INTF0
+#    define XT_CLK_INT_vect     INT0_vect
 #  elif XT_CLK_PIN == _BV(PB5) // should add more pins to this.
-#    define XT_CLK_INTFR     PCIFR     // INT Flag Register
-#    define XT_CLK_INTF      PCIF0
-#    define XT_CLK_INTCR     PCICR
-#    define XT_CLK_INT       PCIE0
-#    define XT_CLK_INT_vect  PCINT0_vect
+#    define XT_CLK_INTFR        PCIFR     // INT Flag Register
+#    define XT_CLK_INTF         PCIF0
+#    define XT_CLK_INTCR        PCICR
+#    define XT_CLK_INT          PCIE0
+#    define XT_CLK_INT_vect     PCINT0_vect
 #  endif
 #endif
 
 /* XT Timer */
 #if defined __AVR_ATmega8__
 
-#  define XT_TIMER_COMP_vect   TIMER2_COMP_vect
-#  define XT_OCR               OCR2
-#  define XT_TCNT              TCNT2
-#  define XT_TCCR1             TCCR2
-#  define XT_TCCR1_DATA        _BV(CS21)
-#  define XT_TCCR2             TCCR2
-#  define XT_TCCR2_DATA        _BV(WGM21)
-#  define XT_TIFR              TIFR
-#  define XT_TIFR_DATA         _BV(OCF2)
-#  define XT_TIMSK             TIMSK
-#  define XT_TIMSK_DATA        _BV(OCIE2)
+#  define XT_TIMER_COMP_vect    TIMER2_COMP_vect
+#  define XT_OCR                OCR2
+#  define XT_TCNT               TCNT2
+#  define XT_TCCR1              TCCR2
+#  define XT_TCCR1_DATA         _BV(CS21)
+#  define XT_TCCR2              TCCR2
+#  define XT_TCCR2_DATA         _BV(WGM21)
+#  define XT_TIFR               TIFR
+#  define XT_TIFR_DATA          _BV(OCF2)
+#  define XT_TIMSK              TIMSK
+#  define XT_TIMSK_DATA         _BV(OCIE2)
 
 #elif defined __AVR_ATmega28__ || defined __AVR_ATmega48__ || defined __AVR_ATmega88__ || defined __AVR_ATmega168__
-#  define XT_TIMER_COMP_vect   TIMER0_COMPA_vect
-#  define XT_OCR               OCR0A
-#  define XT_TCNT              TCNT0
-#  define XT_TCCR1             TCCR0B
-#  define XT_TCCR1_DATA        _BV(CS01)
-#  define XT_TCCR2             TCCR0A
-#  define XT_TCCR2_DATA        _BV(WGM01)
-#  define XT_TIFR              TIFR0
-#  define XT_TIFR_DATA         _BV(OCF0A)
-#  define XT_TIMSK             TIMSK0
-#  define XT_TIMSK_DATA        _BV(OCIE0A)
+#  define XT_TIMER_COMP_vect    TIMER0_COMPA_vect
+#  define XT_OCR                OCR0A
+#  define XT_TCNT               TCNT0
+#  define XT_TCCR1              TCCR0B
+#  define XT_TCCR1_DATA         _BV(CS01)
+#  define XT_TCCR2              TCCR0A
+#  define XT_TCCR2_DATA         _BV(WGM01)
+#  define XT_TIFR               TIFR0
+#  define XT_TIFR_DATA          _BV(OCF0A)
+#  define XT_TIMSK              TIMSK0
+#  define XT_TIMSK_DATA         _BV(OCIE0A)
 
 #elif defined __AVR_ATmega16__ || defined __AVR_ATmega32__ || defined __AVR_ATmega162__
 
-#  define XT_TIMER_COMP_vect   TIMER0_COMP_vect
-#  define XT_OCR               OCR0
-#  define XT_TCNT              TCNT0
-#  define XT_TCCR1             TCCR0
-#  define XT_TCCR1_DATA        _BV(CS01)
-#  define XT_TCCR2             TCCR0
-#  define XT_TCCR2_DATA        _BV(WGM01)
-#  define XT_TIFR              TIFR
-#  define XT_TIFR_DATA         _BV(OCF0)
-#  define XT_TIMSK             TIMSK
-#  define XT_TIMSK_DATA        _BV(OCIE0)
+#  define XT_TIMER_COMP_vect    TIMER0_COMP_vect
+#  define XT_OCR                OCR0
+#  define XT_TCNT               TCNT0
+#  define XT_TCCR1              TCCR0
+#  define XT_TCCR1_DATA         _BV(CS01)
+#  define XT_TCCR2              TCCR0
+#  define XT_TCCR2_DATA         _BV(WGM01)
+#  define XT_TIFR               TIFR
+#  define XT_TIFR_DATA          _BV(OCF0)
+#  define XT_TIMSK              TIMSK
+#  define XT_TIMSK_DATA         _BV(OCIE0)
 
 #else
 #  error Unknown chip!
 #endif
 
-#define XT_HALF_CYCLE 50
+#define XT_CLK_HIGH_START_TIME  (80 - 8)
+#define XT_CLK_LOW_START_TIME   (36 - 5)
+#define XT_CLK_HIGH_BIT_TIME    (80 - 8)
+#define XT_CLK_LOW_BIT_TIME     (36 - 5)
+#define XT_TIMER_100US          (100 - 8)
 
-typedef enum {XT_ST_IDLE
-             ,XT_ST_PREP_PSTART  // initial 0 on data line
-             ,XT_ST_SEND_PSTART
-             ,XT_ST_PREP_START
-             ,XT_ST_SEND_START
-             ,XT_ST_PREP_BIT
-             ,XT_ST_SEND_BIT
-             ,XT_ST_HOLDOFF
-             ,XT_ST_GET_START
-             ,XT_ST_GET_BIT
-             } xtstate_t;
+typedef enum  {XT_ST_IDLE
+              ,XT_ST_RESET
+              ,XT_ST_INIT
+              ,XT_ST_PREP_START
+              ,XT_ST_SEND_START
+              ,XT_ST_PREP_BIT
+              ,XT_ST_SEND_BIT
+              ,XT_ST_HOLDOFF
+              ,XT_ST_WAIT
+              ,XT_ST_GET_START
+              ,XT_ST_GET_BIT
+              } xtstate_t;
 
 static inline __attribute__((always_inline)) void xt_init_timer(void) {
   // set prescaler to System Clock/8
