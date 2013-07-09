@@ -1,3 +1,500 @@
+<<<<<<< .mine
+/*
+    PS2Encoder - PS2 Keyboard to serial/parallel converter
+    Copyright Jim Brain and RETRO Innovations, 2008-2012
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    xt.c: Internal functions for host/device XT KB modes
+
+    timing information derived from http://ilkerf.tripod.com/c64tower/F_Keyboard_FAQ.html#KEYBOARDFAQ_037
+*/
+
+#include <inttypes.h>
+#include <avr/io.h>
+#include <avr/interrupt.h>
+#include <util/atomic.h>
+#include <util/delay.h>
+#include "config.h"
+#include "xt.h"
+#include "uart.h"
+
+#ifdef XT_ENABLE_HOST
+static uint8_t rxbuf[1 << XT_RX_BUFFER_SHIFT];
+static volatile uint8_t rx_head;
+static volatile uint8_t rx_tail;
+#endif
+#ifdef XT_ENABLE_DEVICE
+static uint8_t txbuf[1 << XT_TX_BUFFER_SHIFT];
+static volatile uint8_t tx_head;
+static volatile uint8_t tx_tail;
+#endif
+
+static volatile xtstate_t xt_state;
+static volatile uint8_t xt_byte;
+static volatile uint8_t xt_bit_count;
+
+static xtmode_t xt_mode;
+
+static volatile uint8_t xt_holdoff_count;
+
+static void xt_enable_clk_rise(void) {
+  // turn off IRQ
+  XT_CLK_INTCR &= (uint8_t)~_BV(XT_CLK_INT);
+  // reset flag
+  XT_CLK_INTFR |= _BV(XT_CLK_INTF);
+#if XT_CLK_PIN == _BV(PB5)
+  PCMSK0 |= _BV(PCINT5);
+#else
+  // rising edge
+  XT_CLK_INTDR |= _BV(XT_CLK_ISC1) | _BV(XT_CLK_ISC0);
+#endif
+  // turn on
+  XT_CLK_INTCR |= _BV(XT_CLK_INT);
+}
+
+#ifdef XT_ENABLE_HOST
+static void xt_enable_clk_fall(void) {
+  // turn off IRQ
+  XT_CLK_INTCR &= (uint8_t)~_BV(XT_CLK_INT);
+  // reset flag
+  XT_CLK_INTFR |= _BV(XT_CLK_INTF);
+  // falling edge
+#  if XT_CLK_PIN == _BV(PB5)
+  PCMSK0 |= _BV(PCINT5);
+#  else
+  XT_CLK_INTDR = (XT_CLK_INTDR & (uint8_t)~(_BV(XT_CLK_ISC1) | _BV(XT_CLK_ISC0))) | _BV(XT_CLK_ISC1);
+#  endif
+  // turn on
+  XT_CLK_INTCR |= _BV(XT_CLK_INT);
+}
+#endif
+
+static inline __attribute__((always_inline)) void xt_disable_clk(void) {
+  XT_CLK_INTCR &= (uint8_t)~_BV(XT_CLK_INT);
+}
+
+static void xt_enable_timer(uint8_t us) {
+  // clear flag.
+  XT_TIFR |= XT_TIFR_DATA;
+  // clear TCNT;
+  XT_TCNT = 0;
+  // set the count...
+#if F_CPU > 14000000
+  // us is uS....  Need to * 14 to get ticks, then divide by 8...
+  // cheat... * 14 / 8 = *2 = <<1
+  XT_OCR = (uint8_t)(us << 1);
+#elif F_CPU > 7000000
+  XT_OCR = us;
+#else
+  XT_OCR = (us >> 1);
+#endif
+  // enable output compare IRQ
+  XT_TIMSK |= XT_TIMSK_DATA;
+}
+
+static inline __attribute__((always_inline)) void xt_disable_timer(void) {
+  // disable output compare IRQ
+  XT_TIMSK &= (uint8_t)~XT_TIMSK_DATA;
+}
+
+void xt_clear_buffers(void) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+#ifdef XT_ENABLE_DEVICE
+    tx_head = 0;
+    tx_tail = 0;
+#endif
+#ifdef XT_ENABLE_HOST
+    rx_head = 0;
+    rx_tail = 0;
+#endif
+  }
+}
+
+#ifdef XT_ENABLE_DEVICE
+static void xt_device_trigger_send(void) {
+  // start clocking.
+  // wait a half cycle
+  xt_enable_timer(XT_HALF_CYCLE);
+  // bring DATA line low to ensure everyone knows our intentions
+  xt_clear_data();
+}
+#endif
+
+#ifdef XT_ENABLE_HOST
+static void xt_host_trigger_send(void) {
+  // need to get devices attention...
+  xt_disable_clk();
+  xt_clear_clk();
+  // yes, bring CLK lo for 100uS
+  xt_enable_timer(100);
+}
+#endif
+
+static void xt_trigger_send(void) {
+  // set state
+  xt_state = XT_ST_PREP_PSTART;
+  XT_CALL(xt_device_trigger_send(),xt_host_trigger_send());
+}
+
+#ifdef XT_ENABLE_HOST
+static void xt_clear_counters(void) {
+  xt_byte = 0;
+  xt_bit_count = 0;
+}
+
+static void xt_read_bit(void) {
+  xt_byte = xt_byte >> 1;
+  xt_bit_count++;
+  if(xt_read_data()) {
+    xt_byte |= 0x80;
+  }
+}
+
+static void xt_write_byte(void) {
+  uint8_t tmp;
+  /* Calculate buffer index */
+  tmp = ( rx_head + 1 ) & XT_RX_BUFFER_MASK;
+  rx_head = tmp;      /* Store new index */
+
+  if ( tmp == rx_tail ) {
+    /* ERROR! Receive buffer overflow */
+  }
+  rxbuf[tmp] = xt_byte; /* Store received data in buffer */
+}
+
+static void xt_host_check_for_data(void) {
+  if(xt_data_to_send() != 0) {
+    xt_trigger_send();
+  } else {
+    // wait for something to receive
+    xt_state = XT_ST_IDLE;
+    xt_enable_clk_fall();
+  }
+}
+
+static inline void xt_host_timer_irq(void) {
+  xt_disable_timer();
+  switch (xt_state) {
+    case XT_ST_GET_BIT:
+      // do we have data to send to keyboard?
+      xt_host_check_for_data();
+      break;
+    case XT_ST_PREP_START:
+      // we waited 100uS for device to notice us, bring DATA low and CLK hi
+      xt_clear_data();
+      xt_set_clk();
+      if(!xt_read_clk()) {
+        // kb wants to talk to us.
+        xt_set_data();
+        xt_enable_clk_fall();
+        xt_state = XT_ST_GET_BIT;
+      } else {
+        // really start bit...
+        // now, wait for falling CLK
+        xt_enable_clk_fall();
+        //xt_state = XT_ST_SEND_START;  JLB incorrect
+        xt_state = XT_ST_PREP_BIT;
+        xt_read_byte();
+      }
+      break;
+    default:
+      break;
+  }
+}
+
+
+static void xt_host_clk_irq(void) __attribute__((always_inline));
+static inline void xt_host_clk_irq(void) {
+  switch(xt_state) {
+    case XT_ST_WAIT_RESPONSE:
+    case XT_ST_IDLE:
+      // keyboard sent start bit
+      // should read it, but will assume it is good.
+      xt_state = XT_ST_GET_BIT;
+      // if we don't get another CLK in 100uS, timeout.
+      xt_enable_timer(100);
+      xt_clear_counters();
+      break;
+    case XT_ST_GET_BIT:
+      // if we don't get another CLK in 100uS, timeout.
+      xt_enable_timer(100);
+      // read bit;
+      xt_read_bit();
+      if(xt_bit_count == 8) {
+        // done
+        xt_state = XT_ST_HOLDOFF;
+      }
+      break;
+    case XT_ST_HOLDOFF:
+      // CLK rose, so now, check for more data.
+      // do we have data to send to keyboard?
+      xt_host_check_for_data();
+      break;
+    case XT_ST_PREP_BIT:
+      // time to send bits...
+      if(xt_bit_count == 8) {
+        // we are done
+        xt_commit_read_byte();
+        xt_state = XT_ST_IDLE;
+      } else {
+        xt_write_bit();
+      }
+      break;
+    default:
+      break;
+  }
+}
+
+static void xt_host_init(void) {
+  xt_enable_clk_fall();
+}
+#endif
+
+#ifdef XT_ENABLE_DEVICE
+static void xt_write_bit(void) {
+  xt_state=XT_ST_PREP_BIT;
+  // set DATA..
+  switch (xt_byte & 1) {
+    case 0:
+      xt_clear_data();
+      break;
+    case 1:
+      xt_set_data();
+      break;
+  }
+  // shift right.
+  xt_byte= xt_byte >> 1;
+  xt_bit_count++;
+  // valid data now.
+}
+
+static void xt_read_byte(void) {
+  xt_bit_count = 0;
+  xt_byte = txbuf[( tx_tail + 1 ) & XT_TX_BUFFER_MASK];  /* Start transmission */
+}
+
+static void xt_commit_read_byte(void) {
+  tx_tail = ( tx_tail + 1 ) & XT_TX_BUFFER_MASK;      /* Store new index */
+}
+
+static uint8_t xt_data_to_send(void) {
+  return ( tx_head != tx_tail );
+}
+
+static void xt_device_check_data(void) {
+  // do we have data to send?
+  if(xt_data_to_send()) {
+    xt_trigger_send();
+  } else {
+    xt_state = XT_ST_IDLE;
+    xt_disable_timer();
+  }
+}
+
+static void xt_device_host_inhibit(void) {
+  // CLK is low.  Host wants to talk to us.
+  // turn off timer
+  xt_disable_timer();
+  // look for rising clock
+  xt_enable_clk_rise();
+  xt_state = XT_ST_HOST_INHIBIT;
+  // release DATA line, if we happen to have it.
+  xt_set_data();
+}
+
+
+static inline __attribute__((always_inline)) void xt_device_timer_irq(void) {
+  switch (xt_state) {
+    case XT_ST_PREP_PSTART:  //1
+      // clk the pseudo start bit
+      xt_clear_clk();
+      xt_state = XT_ST_SEND_PSTART;
+      break;
+    case XT_ST_SEND_PSTART:  //2
+      xt_set_clk();  // bring CLK hi
+      if(xt_read_clk()) {
+        xt_set_data(); // set start bit
+        xt_state = XT_ST_PREP_START;
+      } else {
+        xt_device_host_inhibit();
+      }
+      break;
+    case XT_ST_PREP_START:  //3
+      // clk the start bit
+      xt_clear_clk();
+      xt_state = XT_ST_SEND_START;
+      break;
+    case XT_ST_SEND_START:  //4
+      xt_read_byte();
+      xt_set_clk();  // bring CLK hi
+      if(xt_read_clk()) {
+        // state is set in function.
+        xt_write_bit();
+      } else {
+        xt_device_host_inhibit();
+      }
+      break;
+    case XT_ST_PREP_BIT:  //5
+      xt_clear_clk();
+      xt_state = XT_ST_SEND_BIT;
+      break;
+    case XT_ST_SEND_BIT:  //6
+      if(xt_bit_count == 8) {
+        // we are done
+        xt_commit_read_byte();
+        xt_set_data();
+        // wait for CLK to go high
+        xt_enable_clk_rise();
+        xt_set_clk();  // bring CLK hi
+        xt_state = XT_ST_HOLDOFF;
+      } else {
+        xt_set_clk();  // bring CLK hi
+        if(xt_read_clk())
+          // state is set in function.
+          xt_write_bit();
+        else
+          xt_device_host_inhibit();
+      }
+      break;
+    case XT_ST_HOLDOFF:
+      uart_putc('|');
+      break;
+    default:
+      xt_disable_timer();
+      break;
+  }
+}
+
+
+static inline __attribute__((always_inline)) void xt_device_clk_irq(void) {
+  xt_disable_clk();
+
+  switch(xt_state) {
+    case XT_ST_HOLDOFF:
+      if(xt_read_clk()) {
+        if(xt_read_data()) {
+          xt_device_check_data();
+        } else {
+          // we need to wait until DATA is high
+          //ps2_state = PS2_ST_WAIT_START;
+        }
+      } else {
+        xt_device_host_inhibit();
+      }
+      break;
+    case XT_ST_IDLE:
+    case XT_ST_PREP_START:
+      // host is holding us off.  Wait for CLK hi...
+      xt_device_host_inhibit();
+      break;
+    case XT_ST_HOST_INHIBIT:
+      // CLK went hi
+      if(xt_read_data()) {
+        // we can send if we need to.
+        xt_device_check_data();
+      } else {
+        // host wants to send data, CLK is high.
+        // wait half cycle to let things settle.
+        // clock in data from host.
+        xt_enable_timer(XT_HALF_CYCLE);
+        xt_state = XT_ST_WAIT_START;
+      }
+      break;
+    default:
+      break;
+  }
+}
+
+static void xt_device_init(void) {
+  xt_disable_clk();
+  xt_disable_timer();
+  xt_set_clk();
+  xt_set_data();
+  // wait 600mS.
+  _delay_ms(600);
+}
+#endif
+
+ISR(XT_TIMER_COMP_vect) {
+  XT_CALL(xt_device_timer_irq(),xt_host_timer_irq());
+}
+
+ISR(XT_CLK_INT_vect) {
+  XT_CALL(xt_device_clk_irq(),xt_host_clk_irq());
+}
+
+#ifdef XT_ENABLE_HOST
+uint8_t xt_getc( void ) {
+  uint8_t tmptail;
+
+  while ( rx_head == rx_tail ) {
+    // wait for char to arrive, if none in Q
+    ;
+  }
+  // Calculate buffer index
+  tmptail = ( rx_tail + 1 ) & XT_RX_BUFFER_MASK;
+  // Store new index
+  rx_tail = tmptail;
+  return rxbuf[tmptail];
+}
+
+uint8_t xt_data_available( void ) {
+  return ( rx_head != rx_tail ); /* Return 0 (FALSE) if the receive buffer is empty */
+}
+
+#endif
+
+#ifdef XT_ENABLE_DEVICE
+void xt_putc( uint8_t data ) {
+  uint8_t tmphead;
+  // Calculate buffer index
+  tmphead = ( tx_head + 1 ) & XT_TX_BUFFER_MASK;
+  while ( tmphead == tx_tail ) {
+    // Wait for free space in buffer
+    ;
+  }
+  // Store data in buffer
+  txbuf[tmphead] = data;
+  // Store new index
+  tx_head = tmphead;
+
+  // turn off IRQs
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    if(xt_state == XT_ST_IDLE) {
+      // start transmission;
+      xt_trigger_send();
+    }
+  }
+}
+#endif
+
+void xt_init(xtmode_t mode) {
+  // set prescaler to System Clock/8
+  XT_TCCR = XT_TCCR_DATA;
+
+  xt_mode = mode;
+  xt_clear_buffers();
+
+  xt_set_clk();
+  xt_set_data();
+
+  xt_state = XT_ST_IDLE;
+  XT_CALL(xt_device_init(),xt_host_init());
+}
+=======
 /*
     PS2Encoder - PS2 Keyboard to serial/parallel converter
     Copyright Jim Brain and RETRO Innovations, 2008-2012
@@ -623,3 +1120,4 @@ void xt_init(ps2mode_t mode) {
   xt_state = PS2_ST_IDLE;
   PS2_CALL(xt_device_init(),xt_host_init());
 }
+>>>>>>> .r52

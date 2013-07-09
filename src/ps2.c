@@ -209,7 +209,11 @@ static void ps2_host_check_for_data(void) {
   }
 }
 
+<<<<<<< .mine
+static inline __attribute__((always_inline)) void ps2_host_timer_irq(void) {
+=======
 static inline void ps2_host_timer_irq(void) {
+>>>>>>> .r52
   ps2_disable_timer();
   switch (ps2_state) {
     case PS2_ST_GET_BIT:
@@ -242,8 +246,12 @@ static inline void ps2_host_timer_irq(void) {
 }
 
 
+<<<<<<< .mine
+static inline __attribute__((always_inline)) void ps2_host_clk_irq(void) {
+=======
 static void ps2_host_clk_irq(void) __attribute__((always_inline));
 static inline void ps2_host_clk_irq(void) {
+>>>>>>> .r52
   switch(ps2_state) {
     case PS2_ST_WAIT_RESPONSE:
     case PS2_ST_IDLE:
@@ -352,11 +360,16 @@ static void ps2_device_host_inhibit(void) {
 }
 
 
+<<<<<<< .mine
+static inline __attribute__((always_inline)) void ps2_device_timer_irq(void) {
+=======
 static void ps2_device_timer_irq(void) __attribute__((always_inline));
 static inline void ps2_device_timer_irq(void) {
+>>>>>>> .r52
   switch (ps2_state) {
     case PS2_ST_PREP_START:
       // disable the CLK IRQ
+      // TODO I think this disable can be removed, but I'm leaving it in for now.
       ps2_disable_clk();
       // clk the start bit
       ps2_clear_clk();
@@ -523,8 +536,12 @@ static inline void ps2_device_timer_irq(void) {
 }
 
 
+<<<<<<< .mine
+static inline __attribute__((always_inline)) void ps2_device_clk_irq(void) {
+=======
 static void ps2_device_clk_irq(void) __attribute__((always_inline));
 static inline void ps2_device_clk_irq(void) {
+>>>>>>> .r52
   ps2_disable_clk();
 
   switch(ps2_state) {

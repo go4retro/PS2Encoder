@@ -29,6 +29,7 @@
 #include "ps2.h"
 #include "switches.h"
 #include "uart.h"
+#include "xt.h"
 
 typedef enum {
               POLL_ST_IDLE,
@@ -68,13 +69,7 @@ uartstop_t uart_stop;
 uint8_t  type_delay;
 uint8_t  type_rate;
 
-static void send(uint8_t sh, uint8_t unshifted, uint8_t shifted) {
-  uint8_t key;
-
-  if(meta & POLL_FLAG_CONTROL) {
-    unshifted = ((unshifted >= 'a' && unshifted <= 'z')?unshifted & 0x1f:unshifted);
-  }
-  key = (sh | ((meta & POLL_FLAG_CAPS_LOCK) && unshifted >= 'a' && unshifted <= 'z')?shifted:unshifted);
+static inline void send_raw(uint8_t key) {
   // send via RS232
   uart_putc(key);
   data_out(key);
@@ -87,246 +82,498 @@ static void send(uint8_t sh, uint8_t unshifted, uint8_t shifted) {
     _delay_us(1);
     data_strobe_lo();
   }
-  sh = holdoff;
-  while(sh--)
+  key = holdoff;
+  while(key--)
     _delay_us(10);
 }
 
+<<<<<<< .mine
+=======
 static inline void send_raw(uint8_t key) {
   send(FALSE,key,key);
 }
 
+>>>>>>> .r52
 static void sendhex(uint8_t val) {
   uint8_t v = val & 0x0f;
   uint8_t i = val >> 4;
-  send(FALSE,i > 9 ? i - 10 + 'a':i + '0',0);
-  send(FALSE,v > 9 ? i - 10 + 'a':v + '0',0);
+  send_raw(i > 9 ? i - 10 + 'a':i + '0');
+  send_raw(v > 9 ? i - 10 + 'a':v + '0');
 }
 
+<<<<<<< .mine
+#define CTRL(x)    (x & 0x1f)
+#define MAP(x,y,z) do { u = x; s = y; c = z;} while(0)
+
+static uint8_t ps2_to_ascii(uint8_t code) {
+  uint8_t u = 0,s = 0,c = 0;
+
+=======
 static inline void map_key(uint8_t sh, uint8_t code,uint8_t state) {
+>>>>>>> .r52
   // Yes, there are many more elegant ways of handling the mapping.  But, this is simple, and easy to rework.
-  if(state) {
-    switch(code) {
-      case PS2_KEY_F5:
-      case PS2_KEY_F3:
-      case PS2_KEY_F1:
-      case PS2_KEY_F2:
-      case PS2_KEY_F8:
-      case PS2_KEY_F6:
-      case PS2_KEY_F4:
-      case PS2_KEY_F7:
-        break;
-      case PS2_KEY_TAB:
-        send(sh,0x08,0x08);
-        break;
-      case PS2_KEY_BACKQUOTE:
-        send(sh,'`','~');
-        break;
-      case PS2_KEY_Q:
-        send(sh,'q','Q');
-        break;
-      case PS2_KEY_1:
-      case PS2_KEY_NUM_1:
-        send(sh,'1','!');
-        break;
-      case PS2_KEY_Z:
-        send(sh,'z','Z');
-        break;
-      case PS2_KEY_S:
-        send(sh,'s','S');
-        break;
-      case PS2_KEY_A:
-        send(sh,'a','A');
-        break;
-      case PS2_KEY_W:
-        send(sh,'w','W');
-        break;
-      case PS2_KEY_2:
-      case PS2_KEY_NUM_2:
-        send(sh,'2','@');
-        break;
-      case PS2_KEY_C:
-        send(sh,'c','C');
-        break;
-      case PS2_KEY_X:
-        send(sh,'x','X');
-        break;
-      case PS2_KEY_D:
-        send(sh,'d','D');
-        break;
-      case PS2_KEY_E:
-        send(sh,'e','E');
-        break;
-      case PS2_KEY_4:
-      case PS2_KEY_NUM_4:
-        send(sh,'4','$');
-        break;
-      case PS2_KEY_3:
-      case PS2_KEY_NUM_3:
-        send(sh,'3','#');
-        break;
-      case PS2_KEY_SPACE:
-        send(sh,' ',' ');
-        break;
-      case PS2_KEY_V:
-        send(sh,'v','V');
-        break;
-      case PS2_KEY_F:
-        send(sh,'f','F');
-        break;
-      case PS2_KEY_T:
-        send(sh,'t','T');
-        break;
-      case PS2_KEY_R:
-        send(sh,'r','R');
-        break;
-      case PS2_KEY_5:
-      case PS2_KEY_NUM_5:
-        send(sh,'5','%');
-        break;
-      case PS2_KEY_N:
-        send(sh,'n','N');
-        break;
-      case PS2_KEY_B:
-        send(sh,'b','B');
-        break;
-      case PS2_KEY_H:
-        send(sh,'h','H');
-        break;
-      case PS2_KEY_G:
-        send(sh,'g','G');
-        break;
-      case PS2_KEY_Y:
-        send(sh,'y','Y');
-        break;
-      case PS2_KEY_6:
-      case PS2_KEY_NUM_6:
-        send(sh,'6','^');
-        break;
-      case PS2_KEY_M:
-        send(sh,'m','M');
-        break;
-      case PS2_KEY_J:
-        send(sh,'j','J');
-        break;
-      case PS2_KEY_U:
-        send(sh,'u','U');
-        break;
-      case PS2_KEY_7:
-      case PS2_KEY_NUM_7:
-        send(sh,'7','&');
-        break;
-      case PS2_KEY_8:
-      case PS2_KEY_NUM_8:
-        send(sh,'8','*');
-        break;
-      case PS2_KEY_COMMA:
-        send(sh,',','<');
-        break;
-      case PS2_KEY_K:
-        send(sh,'k','K');
-        break;
-      case PS2_KEY_I:
-        send(sh,'i','I');
-        break;
-      case PS2_KEY_O:
-        send(sh,'o','O');
-        break;
-      case PS2_KEY_0:
-      case PS2_KEY_NUM_0:
-        send(sh,'0',')');
-        break;
-      case PS2_KEY_9:
-      case PS2_KEY_NUM_9:
-        send(sh,'9','(');
-        break;
-      case PS2_KEY_PERIOD:
-      case PS2_KEY_NUM_PERIOD:
-        send(sh,'.','>');
-        break;
-      case PS2_KEY_SLASH:
-        send(sh,'/','?');
-        break;
-      case PS2_KEY_L:
-        send(sh,'l','L');
-        break;
-      case PS2_KEY_SEMICOLON:
-        send(sh,';',':');
-        break;
-      case PS2_KEY_P:
-        send(sh,'p','P');
-        break;
-      case PS2_KEY_MINUS:
-        send(sh,'-','_');
-        break;
-      case PS2_KEY_APOSTROPHE:
-        send(sh,'\'','"');
-        break;
-      case PS2_KEY_LBRACKET:
-        send(sh,'[','{');
-        break;
-      case PS2_KEY_EQUALS:
-        send(sh,'=','+');
-        break;
-      case PS2_KEY_ENTER:
-        send(sh,13,13);
-        if(globalopts & OPT_CRLF)
-          send(sh,10,10);
-        break;
-      case PS2_KEY_RBRACKET:
-        send(sh,']','}');
-        break;
-      case PS2_KEY_BACKSLASH:
-        send(sh,'\\','|');
-        break;
-      case PS2_KEY_BS:
-        if(globalopts & OPT_BACKSPACE)
-          send(sh,0x09,0x09);
-        else
-          send(sh,0x7f,0x7f);
-        break;
-      case PS2_KEY_ESC:
-        send(sh,0x1b,0x1b);
-        break;
-      case PS2_KEY_CAPS_LOCK:
-        if(meta & POLL_FLAG_CAPS_LOCK) {
-          meta &= (uint8_t)~POLL_FLAG_CAPS_LOCK;
-          led_state &= (uint8_t)~PS2_LED_CAPS_LOCK;
-        } else {
-          meta |= POLL_FLAG_CAPS_LOCK;
-          led_state |= PS2_LED_CAPS_LOCK;
-        }
-        ps2_putc(PS2_CMD_LEDS);
-        ps2_putc(led_state);
-        break;
-      case PS2_KEY_NUM_LOCK:
-        if(meta & POLL_FLAG_NUM_LOCK) {
-          meta &= (uint8_t)~POLL_FLAG_NUM_LOCK;
-          led_state &= (uint8_t)~PS2_LED_NUM_LOCK;
-        } else {
-          meta |= POLL_FLAG_NUM_LOCK;
-          led_state |= PS2_LED_NUM_LOCK;
-        }
-        ps2_putc(PS2_CMD_LEDS);
-        ps2_putc(led_state);
-        break;
-      case PS2_KEY_SCROLL_LOCK:
-        if(meta & POLL_FLAG_SCROLL_LOCK) {
-          meta &= (uint8_t)~POLL_FLAG_SCROLL_LOCK;
-          led_state &= (uint8_t)~PS2_LED_SCROLL_LOCK;
-        } else {
-          meta |= POLL_FLAG_SCROLL_LOCK;
-          led_state |= PS2_LED_SCROLL_LOCK;
-        }
-        ps2_putc(PS2_CMD_LEDS);
-        ps2_putc(led_state);
-        break;
-    }
+  switch(code) {
+    case PS2_KEY_F5:
+    case PS2_KEY_F3:
+    case PS2_KEY_F1:
+    case PS2_KEY_F2:
+    case PS2_KEY_F8:
+    case PS2_KEY_F6:
+    case PS2_KEY_F4:
+    case PS2_KEY_F7:
+    case PS2_KEY_TAB:
+      MAP(0x08,0x08,0x08);
+      break;
+    case PS2_KEY_BACKQUOTE:
+      MAP('`','~',0);
+      break;
+    case PS2_KEY_Q:
+      MAP('q','Q',CTRL('q'));
+      break;
+    case PS2_KEY_1:
+      MAP('1','1',0);
+      break;
+    case PS2_KEY_NUM_1:
+      MAP('1',0,0);
+      break;
+    case PS2_KEY_Z:
+      MAP('z','Z',CTRL('z'));
+      break;
+    case PS2_KEY_S:
+      MAP('s','S',CTRL('s'));
+      break;
+    case PS2_KEY_A:
+      MAP('a','A',CTRL('a'));
+      break;
+    case PS2_KEY_W:
+      MAP('w','W',CTRL('w'));
+      break;
+    case PS2_KEY_2:
+      MAP('2','@',0);
+      break;
+    case PS2_KEY_NUM_2:
+      MAP('2','2',0);
+      break;
+    case PS2_KEY_C:
+      MAP('c','C',CTRL('c'));
+      break;
+    case PS2_KEY_X:
+      MAP('x','X',CTRL('x'));
+      break;
+    case PS2_KEY_D:
+      MAP('d','D',CTRL('d'));
+      break;
+    case PS2_KEY_E:
+      MAP('e','E',CTRL('e'));
+      break;
+    case PS2_KEY_4:
+      MAP('4','$',0);
+      break;
+    case PS2_KEY_NUM_4:
+      MAP('4','4',0);
+      break;
+    case PS2_KEY_3:
+      MAP('3','#',0);
+      break;
+    case PS2_KEY_NUM_3:
+      MAP('3','3',0);
+      break;
+    case PS2_KEY_SPACE:
+      MAP(' ',' ',' ');
+      break;
+    case PS2_KEY_V:
+      MAP('v','V',CTRL('v'));
+      break;
+    case PS2_KEY_F:
+      MAP('f','F',CTRL('f'));
+      break;
+    case PS2_KEY_T:
+      MAP('t','T',CTRL('t'));
+      break;
+    case PS2_KEY_R:
+      MAP('r','R',CTRL('r'));
+      break;
+    case PS2_KEY_5:
+      MAP('5','%',0);
+      break;
+    case PS2_KEY_NUM_5:
+      MAP('5','5',0);
+      break;
+    case PS2_KEY_N:
+      MAP('n','N',CTRL('n'));
+      break;
+    case PS2_KEY_B:
+      MAP('b','B',CTRL('b'));
+      break;
+    case PS2_KEY_H:
+      MAP('h','H',CTRL('h'));
+      break;
+    case PS2_KEY_G:
+      MAP('g','G',CTRL('g'));
+      break;
+    case PS2_KEY_Y:
+      MAP('y','Y',CTRL('y'));
+      break;
+    case PS2_KEY_6:
+      MAP('6','^',0);
+      break;
+    case PS2_KEY_NUM_6:
+      MAP('6','6',0);
+      break;
+    case PS2_KEY_M:
+      MAP('m','M',CTRL('m'));
+      break;
+    case PS2_KEY_J:
+      MAP('j','J',CTRL('j'));
+      break;
+    case PS2_KEY_U:
+      MAP('u','U',CTRL('u'));
+      break;
+    case PS2_KEY_7:
+      MAP('7','&',0);
+      break;
+    case PS2_KEY_NUM_7:
+      MAP('7','7',0);
+      break;
+    case PS2_KEY_8:
+      MAP('8','*',0);
+      break;
+    case PS2_KEY_NUM_8:
+      MAP('8','8',0);
+      break;
+    case PS2_KEY_COMMA:
+      MAP(',','<',0);
+      break;
+    case PS2_KEY_K:
+      MAP('k','K',CTRL('k'));
+      break;
+    case PS2_KEY_I:
+      MAP('i','I',CTRL('i'));
+      break;
+    case PS2_KEY_O:
+      MAP('o','O',CTRL('o'));
+      break;
+    case PS2_KEY_0:
+      MAP('0',')',0);
+      break;
+    case PS2_KEY_NUM_0:
+      MAP('0','0',0);
+      break;
+    case PS2_KEY_9:
+      MAP('9','(',0);
+      break;
+    case PS2_KEY_NUM_9:
+      MAP('9','9',0);
+      break;
+    case PS2_KEY_PERIOD:
+      MAP('.','>',0);
+      break;
+    case PS2_KEY_NUM_PERIOD:
+      MAP('.','.',0);
+      break;
+    case PS2_KEY_SLASH:
+      MAP('/','?',0);
+      break;
+    case PS2_KEY_L:
+      MAP('l','L',CTRL('l'));
+      break;
+    case PS2_KEY_SEMICOLON:
+      MAP(';',':',0);
+      break;
+    case PS2_KEY_P:
+      MAP('p','P',CTRL('p'));
+      break;
+    case PS2_KEY_MINUS:
+      MAP('-','_',CTRL('-'));
+      break;
+    case PS2_KEY_APOSTROPHE:
+      MAP('\'','"',0);
+      break;
+    case PS2_KEY_LBRACKET:
+      MAP('[','{',0);
+      break;
+    case PS2_KEY_EQUALS:
+      MAP('=','+',0);
+      break;
+    case PS2_KEY_ENTER:
+      MAP(13,13,13);
+      break;
+    case PS2_KEY_RBRACKET:
+      MAP(']','}',0);
+      break;
+    case PS2_KEY_BACKSLASH:
+      MAP('\\','|',CTRL('\\'));
+      break;
+    case PS2_KEY_BS:
+      if(globalopts & OPT_BACKSPACE)
+        MAP(0x09,0x09,0x09);
+      else
+        MAP(0x7f,0x7f,0x7f);
+      break;
+    case PS2_KEY_ESC:
+      MAP(0x1b,0x1b,0x1b);
+      break;
   }
+  if(meta & POLL_FLAG_CONTROL && c)
+    return c;
+  else if((meta & POLL_FLAG_SHIFT) && s)
+    return s;
+  else if((meta & POLL_FLAG_CAPS_LOCK) && u >= 'a' && u <= 'z')
+    return s;
+  return u;
+}
+
+static uint8_t ps2_to_xt(uint8_t code,uint8_t state) {
+  uint8_t key = 0;
+
+  // Yes, there are many more elegant ways of handling the mapping.  But, this is simple, and easy to rework.
+  switch(code) {
+    case PS2_KEY_F5:
+      key = XT_KEY_F5;
+      break;
+    case PS2_KEY_F3:
+      key = XT_KEY_F3;
+      break;
+    case PS2_KEY_F1:
+      key = XT_KEY_F1;
+      break;
+    case PS2_KEY_F2:
+      key = XT_KEY_F2;
+      break;
+    case PS2_KEY_F8:
+      key = XT_KEY_F8;
+      break;
+    case PS2_KEY_F6:
+      key = XT_KEY_F6;
+      break;
+    case PS2_KEY_F4:
+      key = XT_KEY_F4;
+      break;
+    case PS2_KEY_F7:
+      key = XT_KEY_F7;
+      break;
+    case PS2_KEY_TAB:
+      key = XT_KEY_TAB;
+      break;
+    case PS2_KEY_BACKQUOTE:
+      key = XT_KEY_BACKQUOTE;
+      break;
+    case PS2_KEY_Q:
+      key = XT_KEY_Q;
+      break;
+    case PS2_KEY_1:
+      key = XT_KEY_1;
+      break;
+    case PS2_KEY_NUM_1:
+      key = XT_KEY_NUM_1;
+      break;
+    case PS2_KEY_Z:
+      key = XT_KEY_Z;
+      break;
+    case PS2_KEY_S:
+      key = XT_KEY_S;
+      break;
+    case PS2_KEY_A:
+      key = XT_KEY_A;
+      break;
+    case PS2_KEY_W:
+      key = XT_KEY_W;
+      break;
+    case PS2_KEY_2:
+      key = XT_KEY_2;
+      break;
+    case PS2_KEY_NUM_2:
+      key = XT_KEY_NUM_2;
+      break;
+    case PS2_KEY_C:
+      key = XT_KEY_C;
+      break;
+    case PS2_KEY_X:
+      key = XT_KEY_X;
+      break;
+    case PS2_KEY_D:
+      key = XT_KEY_D;
+      break;
+    case PS2_KEY_E:
+      key = XT_KEY_E;
+      break;
+    case PS2_KEY_4:
+      key = XT_KEY_4;
+      break;
+    case PS2_KEY_NUM_4:
+      key = XT_KEY_NUM_4;
+      break;
+    case PS2_KEY_3:
+      key = XT_KEY_3;
+      break;
+    case PS2_KEY_NUM_3:
+      key = XT_KEY_NUM_3;
+      break;
+    case PS2_KEY_SPACE:
+      key = XT_KEY_SPACE;
+      break;
+    case PS2_KEY_V:
+      key = XT_KEY_V;
+      break;
+    case PS2_KEY_F:
+      key = XT_KEY_F;
+      break;
+    case PS2_KEY_T:
+      key = XT_KEY_T;
+      break;
+    case PS2_KEY_R:
+      key = XT_KEY_R;
+      break;
+    case PS2_KEY_5:
+      key = XT_KEY_5;
+      break;
+    case PS2_KEY_NUM_5:
+      key = XT_KEY_NUM_5;
+      break;
+    case PS2_KEY_N:
+      key = XT_KEY_N;
+      break;
+    case PS2_KEY_B:
+      key = XT_KEY_B;
+      break;
+    case PS2_KEY_H:
+      key = XT_KEY_H;
+      break;
+    case PS2_KEY_G:
+      key = XT_KEY_G;
+      break;
+    case PS2_KEY_Y:
+      key = XT_KEY_Y;
+      break;
+    case PS2_KEY_6:
+      key = XT_KEY_6;
+      break;
+    case PS2_KEY_NUM_6:
+      key = XT_KEY_NUM_6;
+      break;
+    case PS2_KEY_M:
+      key = XT_KEY_M;
+      break;
+    case PS2_KEY_J:
+      key = XT_KEY_J;
+      break;
+    case PS2_KEY_U:
+      key = XT_KEY_U;
+      break;
+    case PS2_KEY_7:
+      key = XT_KEY_7;
+      break;
+    case PS2_KEY_NUM_7:
+      key = XT_KEY_NUM_7;
+      break;
+    case PS2_KEY_8:
+      key = XT_KEY_8;
+      break;
+    case PS2_KEY_NUM_8:
+      key = XT_KEY_NUM_8;
+      break;
+    case PS2_KEY_COMMA:
+      key = XT_KEY_COMMA;
+      break;
+    case PS2_KEY_K:
+      key = XT_KEY_K;
+      break;
+    case PS2_KEY_I:
+      key = XT_KEY_I;
+      break;
+    case PS2_KEY_O:
+      key = XT_KEY_O;
+      break;
+    case PS2_KEY_0:
+      key = XT_KEY_0;
+      break;
+    case PS2_KEY_NUM_0:
+      key = XT_KEY_NUM_0;
+      break;
+    case PS2_KEY_9:
+      key = XT_KEY_9;
+      break;
+    case PS2_KEY_NUM_9:
+      key = XT_KEY_NUM_9;
+      break;
+    case PS2_KEY_PERIOD:
+      key = XT_KEY_PERIOD;
+      break;
+    case PS2_KEY_NUM_PERIOD:
+      key = XT_KEY_NUM_PERIOD;
+      break;
+    case PS2_KEY_SLASH:
+      key = XT_KEY_SLASH;
+      break;
+    case PS2_KEY_L:
+      key = XT_KEY_L;
+      break;
+    case PS2_KEY_SEMICOLON:
+      key = XT_KEY_SEMICOLON;
+      break;
+    case PS2_KEY_P:
+      key = XT_KEY_P;
+      break;
+    case PS2_KEY_MINUS:
+      key = XT_KEY_MINUS;
+      break;
+    case PS2_KEY_APOSTROPHE:
+      key = XT_KEY_APOSTROPHE;
+      break;
+    case PS2_KEY_LBRACKET:
+      key = XT_KEY_LBRACKET;
+      break;
+    case PS2_KEY_EQUALS:
+      key = XT_KEY_EQUALS;
+      break;
+    case PS2_KEY_ENTER:
+      key = XT_KEY_ENTER;
+      break;
+    case PS2_KEY_RBRACKET:
+      key = XT_KEY_RBRACKET;
+      break;
+    case PS2_KEY_BACKSLASH:
+      key = XT_KEY_BACKSLASH;
+      break;
+    case PS2_KEY_BS:
+      key = XT_KEY_BS;
+      break;
+    case PS2_KEY_ESC:
+      key = XT_KEY_ESC;
+      break;
+    case PS2_KEY_CAPS_LOCK:
+      key = XT_KEY_CAPS_LOCK;
+      break;
+    case PS2_KEY_NUM_LOCK:
+      key = XT_KEY_NUM_LOCK;
+      break;
+    case PS2_KEY_SCROLL_LOCK:
+      key = XT_KEY_SCROLL_LOCK;
+      break;
+    case PS2_KEY_ALT:
+      key = XT_KEY_ALT;
+      break;
+    case PS2_KEY_ALT | 0x80:
+      key = XT_KEY_RALT;
+      break;
+    case PS2_KEY_LCTRL:
+      key = XT_KEY_LCTRL;
+      break;
+    case PS2_KEY_LCTRL | 0x80:
+      key = XT_KEY_RCTRL;
+      break;
+    case PS2_KEY_LSHIFT:
+      key = XT_KEY_LSHIFT;
+      break;
+    case PS2_KEY_RSHIFT:
+      key = XT_KEY_RSHIFT;
+      break;
+  }
+  return (state ? key : key | 0x80);
 }
 
 static void send_option(uint8_t ch, uint8_t b) {
-  send(b, '!', ch);
+  send_raw(b ? ch : '!');
 }
 
 static inline void set_options(uint8_t key) {
@@ -404,52 +651,42 @@ static inline void set_options(uint8_t key) {
       break;
     case PS2_KEY_0:   // 110 bps
       uart_bps = CALC_BPS(110);
-      uart_config(uart_bps, uart_length, uart_parity, uart_stop);
       send_raw('0');
       break;
     case PS2_KEY_1:   // 300 bps
       uart_bps = CALC_BPS(300);
-      uart_config(uart_bps, uart_length, uart_parity, uart_stop);
       send_raw('1');
       break;
     case PS2_KEY_2:   // 600 bps
       uart_bps = CALC_BPS(600);
-      uart_config(uart_bps, uart_length, uart_parity, uart_stop);
       send_raw('2');
       break;
     case PS2_KEY_3:   // 1200 bps
       uart_bps = CALC_BPS(1200);
-      uart_config(uart_bps, uart_length, uart_parity, uart_stop);
       send_raw('3');
       break;
     case PS2_KEY_4:   // 2400 bps
       uart_bps = CALC_BPS(2400);
-      uart_config(uart_bps, uart_length, uart_parity, uart_stop);
       send_raw('4');
       break;
     case PS2_KEY_5:   // 4800 bps
       uart_bps = CALC_BPS(4800);
-      uart_config(uart_bps, uart_length, uart_parity, uart_stop);
       send_raw('5');
       break;
     case PS2_KEY_6:   // 9600 bps
       uart_bps = CALC_BPS(9600);
-      uart_config(uart_bps, uart_length, uart_parity, uart_stop);
       send_raw('6');
       break;
     case PS2_KEY_7:   // 19200 bps
       uart_bps = CALC_BPS(19200);
-      uart_config(uart_bps, uart_length, uart_parity, uart_stop);
       send_raw('7');
       break;
     case PS2_KEY_8:   // 38400 bps
       uart_bps = CALC_BPS(38400);
-      uart_config(uart_bps, uart_length, uart_parity, uart_stop);
       send_raw('8');
       break;
     case PS2_KEY_9:   // 57600 bps
       uart_bps = CALC_BPS(57600);
-      uart_config(uart_bps, uart_length, uart_parity, uart_stop);
       send_raw('9');
       break;
     case PS2_KEY_O:   // Odd Parity
@@ -491,26 +728,42 @@ static inline void set_options(uint8_t key) {
   }
 }
 
+<<<<<<< .mine
+static void parse_key(uint8_t key, uint8_t state) {
+  uint8_t code;
+
+  if((key & 0x7f)==PS2_KEY_ALT) {
+=======
 static void parse_key(uint8_t key, uint8_t state) {
   if((key&0x7f)==PS2_KEY_ALT) {
+>>>>>>> .r52
     // turn on or off the ALT META flag
-    meta=(meta&(uint8_t)~POLL_FLAG_ALT) | (state?POLL_FLAG_ALT:0);
-  } else if((key&0x7f)==PS2_KEY_LCTRL) {
+    meta = (meta & (uint8_t)~POLL_FLAG_ALT) | (state ? POLL_FLAG_ALT : 0);
+  } else if((key & 0x7f)==PS2_KEY_LCTRL) {
     // turn on or off the CTRL META flag
-    meta=(meta&(uint8_t)~POLL_FLAG_CONTROL) | (state?POLL_FLAG_CONTROL:0);
+    meta = (meta & (uint8_t)~POLL_FLAG_CONTROL) | (state ? POLL_FLAG_CONTROL : 0);
   } else if(key == PS2_KEY_LSHIFT) {
     meta = (meta & (uint8_t)~POLL_FLAG_LSHIFT) | (state ? POLL_FLAG_LSHIFT : 0);
   } else if(key == PS2_KEY_RSHIFT) {
     meta = (meta & (uint8_t)~POLL_FLAG_RSHIFT) | (state ? POLL_FLAG_RSHIFT : 0);
   }
-  if((meta&POLL_FLAG_CTRL_ALT)==POLL_FLAG_CTRL_ALT && key==(0x80 | PS2_KEY_DELETE) && state) {
+  if((meta & POLL_FLAG_CTRL_ALT) == POLL_FLAG_CTRL_ALT && key == (0x80 | PS2_KEY_DELETE) && state) {
     // CTRL/ALT/DEL is pressed.
     // bring RESET line low
+<<<<<<< .mine
+    reset_set_lo();
+=======
     // repeat this a few times so the pulse will be long enough to trigger the logic.
     reset_set_lo();
+>>>>>>> .r52
     _delay_us(1);
+<<<<<<< .mine
+    reset_set_hi();
+  } else if(mode_config() && (meta&POLL_FLAG_CTRL_ALT) == POLL_FLAG_CTRL_ALT && key == PS2_KEY_BS && state) {
+=======
     reset_set_hi();
   } else if(mode_config() && (meta&POLL_FLAG_CTRL_ALT)==POLL_FLAG_CTRL_ALT && key==PS2_KEY_BS && state) {
+>>>>>>> .r52
     // CTRL/ALT/BS config mode
     config ^= KB_CONFIG;
     if(!config) {
@@ -518,25 +771,71 @@ static void parse_key(uint8_t key, uint8_t state) {
       ps2_putc(PS2_CMD_SET_RATE);
       ps2_putc(CALC_RATE(type_delay, type_rate));
     }
-
   } else if (config) {
     if(state) { // set parms on keydown
       set_options(key);
     }
-  } else
-    map_key(meta&POLL_FLAG_SHIFT,key,state);
+  } else if (state) {
+    switch (key) {
+      case PS2_KEY_CAPS_LOCK:
+        if(meta & POLL_FLAG_CAPS_LOCK) {
+          meta &= (uint8_t)~POLL_FLAG_CAPS_LOCK;
+          led_state &= (uint8_t)~PS2_LED_CAPS_LOCK;
+        } else {
+          meta |= POLL_FLAG_CAPS_LOCK;
+          led_state |= PS2_LED_CAPS_LOCK;
+        }
+        ps2_putc(PS2_CMD_LEDS);
+        ps2_putc(led_state);
+        xt_putc(XT_KEY_CAPS_LOCK);
+        break;
+      case PS2_KEY_NUM_LOCK:
+        if(meta & POLL_FLAG_NUM_LOCK) {
+          meta &= (uint8_t)~POLL_FLAG_NUM_LOCK;
+          led_state &= (uint8_t)~PS2_LED_NUM_LOCK;
+        } else {
+          meta |= POLL_FLAG_NUM_LOCK;
+          led_state |= PS2_LED_NUM_LOCK;
+        }
+        ps2_putc(PS2_CMD_LEDS);
+        ps2_putc(led_state);
+        break;
+      case PS2_KEY_SCROLL_LOCK:
+        if(meta & POLL_FLAG_SCROLL_LOCK) {
+          meta &= (uint8_t)~POLL_FLAG_SCROLL_LOCK;
+          led_state &= (uint8_t)~PS2_LED_SCROLL_LOCK;
+        } else {
+          meta |= POLL_FLAG_SCROLL_LOCK;
+          led_state |= PS2_LED_SCROLL_LOCK;
+        }
+        ps2_putc(PS2_CMD_LEDS);
+        ps2_putc(led_state);
+        break;
+      default:
+        code = ps2_to_ascii(key);
+        send_raw(code);
+        if((globalopts & OPT_CRLF) && code == 13 && !(meta & POLL_FLAG_CONTROL) )
+          send_raw(10);
+        break;
+    }
+  }
+  xt_putc(ps2_to_xt(key,state));
 }
 
+<<<<<<< .mine
+static inline __attribute__((always_inline)) void poll_kb(void) {
+=======
 static inline void poll_kb(void) {
+>>>>>>> .r52
   uint8_t key;
   poll_state_t state = POLL_ST_IDLE;
 
   for(;;) {
     if(ps2_data_available() != 0) {
       // kb sent data...
-      key=ps2_getc();
-      if(key==PS2_CMD_BAT) {
-        state=POLL_ST_IDLE;
+      key = ps2_getc();
+      if(key == PS2_CMD_BAT) {
+        state = POLL_ST_IDLE;
       } else {
         switch(state) {
           case POLL_ST_IDLE:
@@ -655,6 +954,87 @@ static inline void poll_kb(void) {
   }
 }
 
+<<<<<<< .mine
+ISR(TIMER_vect) {
+  mat_scan();
+  //sw_scan();
+}
+
+static inline __attribute__((always_inline)) void scan_inputs(void) {
+  uint8_t data;
+
+  for(;;) {
+    if(mat_data_available()) {
+      data=mat_recv();
+      uart_puthex(data);
+    }
+    if(sw_data_available()) {
+
+      // handle special switches.
+      data=sw_recv();
+      uart_puthex(data);
+      if(data & SW_UP) {
+      } else {
+        // only act on key depress
+        switch(data & (SW_UP - 1)) {
+          case SW_A:
+            ps2_putc(PS2_KEY_F1);
+            ps2_putc(PS2_KEY_UP);
+            ps2_putc(PS2_KEY_F1);
+            break;
+          case SW_B:
+            ps2_putc(PS2_KEY_F2);
+            ps2_putc(PS2_KEY_UP);
+            ps2_putc(PS2_KEY_F2);
+            break;
+        }
+      }
+    }
+  }
+}
+
+void main(void) {
+  mode_init();
+  uart_init();
+
+  eeprom_read_config();
+
+  uart_config(uart_bps, uart_length, uart_parity, uart_stop);
+
+  if(mode_device()) {
+    ps2_init(PS2_MODE_DEVICE);
+    xt_init(XT_MODE_HOST);
+
+    mat_init();
+    sw_init(_BV(SW_A) | _BV(SW_B));
+
+    timer_init();
+
+    sei();
+    uart_putc('d');
+
+    scan_inputs();
+  } else {
+    data_init();
+    reset_init();
+    reset_set_hi();
+
+    if(globalopts & OPT_STROBE_LO)
+      data_strobe_hi();
+    else
+      data_strobe_lo();
+    ps2_init(PS2_MODE_HOST);
+    xt_init(XT_MODE_DEVICE);
+
+    sei();
+    uart_putc('h');
+
+    poll_kb();
+  }
+  while(TRUE);
+}
+
+=======
 ISR(TIMER_vect) {
   mat_scan();
   //sw_scan();
@@ -732,3 +1112,4 @@ void main(void) {
   }
 }
 
+>>>>>>> .r52

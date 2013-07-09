@@ -2,8 +2,8 @@
 
 # Define version number
 MAJOR = 0
-MINOR = 6
-PATCHLEVEL = 9
+MINOR = 7
+PATCHLEVEL = 0
 FIX = 0
 
 # Forces bootloader version to 0, comment out or leave empty for release
@@ -159,7 +159,7 @@ FORMAT = ihex
 TARGET = PS2Encoder
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC = uart.c main.c ps2.c ps2_kb.c eeprom.c switches.c matrix.c
+SRC = uart.c main.c ps2.c ps2_kb.c eeprom.c switches.c matrix.c xt.c
 
 # Sample mechanism to add files to SRC line
 #ifeq ($(CONFIG_VARIABLE),4)
