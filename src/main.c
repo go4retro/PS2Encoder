@@ -25,7 +25,9 @@
 #include "config.h"
 #include "eeprom.h"
 #include "flags.h"
+#include "matrix.h"
 #include "ps2.h"
+#include "switches.h"
 #include "uart.h"
 
 typedef enum {
@@ -75,22 +77,22 @@ static void send(uint8_t sh, uint8_t unshifted, uint8_t shifted) {
   key = (sh | ((meta & POLL_FLAG_CAPS_LOCK) && unshifted >= 'a' && unshifted <= 'z')?shifted:unshifted);
   // send via RS232
   uart_putc(key);
-  DATA_OUT(key);
+  data_out(key);
   if(globalopts & OPT_STROBE_LO) {
-    STROBE_LO();
+    data_strobe_lo();
     _delay_us(1);
-    STROBE_HI();
+    data_strobe_hi();
   } else {
-    STROBE_HI();
+    data_strobe_hi();
     _delay_us(1);
-    STROBE_LO();
+    data_strobe_lo();
   }
   sh = holdoff;
   while(sh--)
     _delay_us(10);
 }
 
-static void send_raw(uint8_t key) {
+static inline void send_raw(uint8_t key) {
   send(FALSE,key,key);
 }
 
@@ -101,7 +103,7 @@ static void sendhex(uint8_t val) {
   send(FALSE,v > 9 ? i - 10 + 'a':v + '0',0);
 }
 
-static void map_key(uint8_t sh, uint8_t code,uint8_t state) {
+static inline void map_key(uint8_t sh, uint8_t code,uint8_t state) {
   // Yes, there are many more elegant ways of handling the mapping.  But, this is simple, and easy to rework.
   if(state) {
     switch(code) {
@@ -327,7 +329,7 @@ static void send_option(uint8_t ch, uint8_t b) {
   send(b, '!', ch);
 }
 
-static void set_options(uint8_t key) {
+static inline void set_options(uint8_t key) {
   if(meta & POLL_FLAG_SHIFT) {
     switch(key) {
     case PS2_KEY_ENTER:
@@ -344,24 +346,24 @@ static void set_options(uint8_t key) {
       send_raw('*');
       break;
     case PS2_KEY_T:       // Increase send delay
-      if(holdoff <= 0xff)
+      if(holdoff < 0xff)
         holdoff++;
-      send_option('T',holdoff <= 0xff);
+      send_option('T',holdoff < 0xff);
       break;
     case PS2_KEY_R:       // Increase Typematic rate
       if(type_rate < 0x1f)
         type_rate++;
-      send_option('R',type_rate <= 0x1f);
+      send_option('R',type_rate < 0x1f);
       break;
     case PS2_KEY_D:       // Increase Typematic delay
       if(type_delay < 0x03)
         type_delay++;
-      send_option('D',type_delay <= 0x03);
+      send_option('D',type_delay < 0x03);
       break;
     case PS2_KEY_S:       // Increase OSCCAL
-      if(OSCCAL <= 0xff)
+      if(OSCCAL < 0xff)
         OSCCAL++;
-      send_option('+',OSCCAL <= 0xff);
+      send_option('+',OSCCAL < 0xff);
       break;
     }
   } else {
@@ -392,12 +394,12 @@ static void set_options(uint8_t key) {
       break;
     case PS2_KEY_L:   // LOW STROBE
       globalopts |= OPT_STROBE_LO;
-      STROBE_HI();
+      data_strobe_hi();
       send_raw('L');
       break;
     case PS2_KEY_H:   // HI STROBE
       globalopts &= (uint8_t)~OPT_STROBE_LO;
-      STROBE_LO();
+      data_strobe_lo();
       send_raw('H');
       break;
     case PS2_KEY_0:   // 110 bps
@@ -489,7 +491,7 @@ static void set_options(uint8_t key) {
   }
 }
 
-void parse_key(uint8_t key, uint8_t state) {
+static void parse_key(uint8_t key, uint8_t state) {
   if((key&0x7f)==PS2_KEY_ALT) {
     // turn on or off the ALT META flag
     meta=(meta&(uint8_t)~POLL_FLAG_ALT) | (state?POLL_FLAG_ALT:0);
@@ -505,10 +507,10 @@ void parse_key(uint8_t key, uint8_t state) {
     // CTRL/ALT/DEL is pressed.
     // bring RESET line low
     // repeat this a few times so the pulse will be long enough to trigger the logic.
-    RESET_ACTIVE();
+    reset_set_lo();
     _delay_us(1);
-    RESET_INACTIVE();
-  } else if(CONF_MODE() && (meta&POLL_FLAG_CTRL_ALT)==POLL_FLAG_CTRL_ALT && key==PS2_KEY_BS && state) {
+    reset_set_hi();
+  } else if(mode_config() && (meta&POLL_FLAG_CTRL_ALT)==POLL_FLAG_CTRL_ALT && key==PS2_KEY_BS && state) {
     // CTRL/ALT/BS config mode
     config ^= KB_CONFIG;
     if(!config) {
@@ -525,32 +527,10 @@ void parse_key(uint8_t key, uint8_t state) {
     map_key(meta&POLL_FLAG_SHIFT,key,state);
 }
 
-int main(void) __attribute__((OS_main));
-int main(void) {
+static inline void poll_kb(void) {
   uint8_t key;
   poll_state_t state = POLL_ST_IDLE;
 
-  uart_init();
-
-  eeprom_read_config();
-
-  DATA_SETDDR();
-  RESET_SETDDR();
-  RESET_INACTIVE();
-  CONF_MODE_SETDDR();
-  STROBE_SETDDR();
-
-  if(globalopts & OPT_STROBE_LO)
-    STROBE_HI();
-  else
-    STROBE_LO();
-
-  uart_config(uart_bps, uart_length, uart_parity, uart_stop);
-
-  ps2_init(PS2_MODE_HOST);
-
-  sei();
-  uart_putc('.');
   for(;;) {
     if(ps2_data_available() != 0) {
       // kb sent data...
@@ -558,120 +538,197 @@ int main(void) {
       if(key==PS2_CMD_BAT) {
         state=POLL_ST_IDLE;
       } else {
-      switch(state) {
-        case POLL_ST_IDLE:
-          switch(key) {
-            case PS2_KEY_EXT:
-              // we got E0
-              state=POLL_ST_GET_X_KEY;
-              break;
-            case PS2_KEY_UP:
-              // get normal key up.
-              state=POLL_ST_GET_KEY_UP;
-              break;
-            case PS2_KEY_EXT_2:
-              // we got an E1
-              state=POLL_ST_GET_PAUSE_1;
-              // start on the Pause/Break sequence.
-              break;
-            case PS2_CMD_ACK:
-            case PS2_CMD_ECHO:
-            case PS2_CMD_ERROR:
-            case PS2_CMD_OVERFLOW:
-              break;
-            default:
-              parse_key(key,TRUE);
+        switch(state) {
+          case POLL_ST_IDLE:
+            switch(key) {
+              case PS2_KEY_EXT:
+                // we got E0
+                state=POLL_ST_GET_X_KEY;
+                break;
+              case PS2_KEY_UP:
+                // get normal key up.
+                state=POLL_ST_GET_KEY_UP;
+                break;
+              case PS2_KEY_EXT_2:
+                // we got an E1
+                state=POLL_ST_GET_PAUSE_1;
+                // start on the Pause/Break sequence.
+                break;
+              case PS2_CMD_ACK:
+              case PS2_CMD_ECHO:
+              case PS2_CMD_ERROR:
+              case PS2_CMD_OVERFLOW:
+                break;
+              default:
+                parse_key(key,TRUE);
+                state=POLL_ST_IDLE;
+                break;
+            }
+            break;
+          case POLL_ST_GET_KEY_UP:
+            parse_key(key,FALSE);
+            state=POLL_ST_IDLE;
+            break;
+          case POLL_ST_GET_X_KEY:
+            if(key==PS2_KEY_UP) {
+              state=POLL_ST_GET_X_KEY_UP;
+            } else if(key==PS2_KEY_LSHIFT) {
+              // when NumLock is pressed, INS and DEL prepend with EO 12 (extended shift), but we don't care, so eat code.
+              // Also, when PrintScreen is pressed, it too sends an E0 12
               state=POLL_ST_IDLE;
-              break;
-          }
-          break;
-        case POLL_ST_GET_KEY_UP:
-          parse_key(key,FALSE);
-          state=POLL_ST_IDLE;
-          break;
-        case POLL_ST_GET_X_KEY:
-          if(key==PS2_KEY_UP) {
-            state=POLL_ST_GET_X_KEY_UP;
-          } else if(key==PS2_KEY_LSHIFT) {
-            // when NumLock is pressed, INS and DEL prepend with EO 12 (extended shift), but we don't care, so eat code.
-            // Also, when PrintScreen is pressed, it too sends an E0 12
+            } else {
+              parse_key(0x80 | key,TRUE);
+              state=POLL_ST_IDLE;
+            }
+            break;
+          case POLL_ST_GET_X_KEY_UP:
+            if(key==PS2_KEY_LSHIFT) {
+              // when NumLock is pressed, INS and DEL prepend with EO 12 (extended shift), but we don't care, so eat code.
+              // Also, when PrintScreen is pressed, it too sends an E0 12
+              state=POLL_ST_IDLE;
+            } else {
+              parse_key(0x80 | key,FALSE);
+              state=POLL_ST_IDLE;
+            }
+            break;
+          case POLL_ST_GET_PAUSE_1:
+            // we get 14
+            if(key==PS2_KEY_PCTRL) {
+              state=POLL_ST_GET_PAUSE_2;
+            } else {
+              state=POLL_ST_IDLE;
+            }
+            break;
+          case POLL_ST_GET_PAUSE_2:
+            // we got 77
+            if(key==PS2_KEY_PAUSE) {
+              state=POLL_ST_GET_PAUSE_3;
+            } else {
+              state=POLL_ST_IDLE;
+            }
+            break;
+          case POLL_ST_GET_PAUSE_3:
+            // we get E1
+            if(key==PS2_KEY_EXT_2) {
+              state=POLL_ST_GET_PAUSE_4;
+            } else {
+              state=POLL_ST_IDLE;
+            }
+            break;
+          case POLL_ST_GET_PAUSE_4:
+            // we got F0
+            if(key==PS2_KEY_UP) {
+              state=POLL_ST_GET_PAUSE_5;
+            } else {
+              state=POLL_ST_IDLE;
+            }
+            break;
+          case POLL_ST_GET_PAUSE_5:
+            // we got 14
+            if(key==PS2_KEY_PCTRL) {
+              state=POLL_ST_GET_PAUSE_6;
+            } else {
+              state=POLL_ST_IDLE;
+            }
+            break;
+          case POLL_ST_GET_PAUSE_6:
+            // we got F0
+            if(key==PS2_KEY_UP) {
+              state=POLL_ST_GET_PAUSE_7;
+            } else {
+              state=POLL_ST_IDLE;
+            }
+            break;
+          case POLL_ST_GET_PAUSE_7:
+            // we got 77
+            if(key==PS2_KEY_PAUSE) {
+              //('R');
+              // we received a complete Pause/Break, do something about it.
+              parse_key(0x80|PS2_KEY_PAUSE,TRUE);
+              parse_key(0x80|PS2_KEY_PAUSE,FALSE);
+            }
             state=POLL_ST_IDLE;
-          } else {
-            parse_key(0x80 | key,TRUE);
-            state=POLL_ST_IDLE;
-          }
-          break;
-        case POLL_ST_GET_X_KEY_UP:
-          if(key==PS2_KEY_LSHIFT) {
-            // when NumLock is pressed, INS and DEL prepend with EO 12 (extended shift), but we don't care, so eat code.
-            // Also, when PrintScreen is pressed, it too sends an E0 12
-            state=POLL_ST_IDLE;
-          } else {
-            parse_key(0x80 | key,FALSE);
-            state=POLL_ST_IDLE;
-          }
-          break;
-        case POLL_ST_GET_PAUSE_1:
-          // we get 14
-          if(key==PS2_KEY_PCTRL) {
-            state=POLL_ST_GET_PAUSE_2;
-          } else {
-            state=POLL_ST_IDLE;
-          }
-          break;
-        case POLL_ST_GET_PAUSE_2:
-          // we got 77
-          if(key==PS2_KEY_PAUSE) {
-            state=POLL_ST_GET_PAUSE_3;
-          } else {
-            state=POLL_ST_IDLE;
-          }
-          break;
-        case POLL_ST_GET_PAUSE_3:
-          // we get E1
-          if(key==PS2_KEY_EXT_2) {
-            state=POLL_ST_GET_PAUSE_4;
-          } else {
-            state=POLL_ST_IDLE;
-          }
-          break;
-        case POLL_ST_GET_PAUSE_4:
-          // we got F0
-          if(key==PS2_KEY_UP) {
-            state=POLL_ST_GET_PAUSE_5;
-          } else {
-            state=POLL_ST_IDLE;
-          }
-          break;
-        case POLL_ST_GET_PAUSE_5:
-          // we got 14
-          if(key==PS2_KEY_PCTRL) {
-            state=POLL_ST_GET_PAUSE_6;
-          } else {
-            state=POLL_ST_IDLE;
-          }
-          break;
-        case POLL_ST_GET_PAUSE_6:
-          // we got F0
-          if(key==PS2_KEY_UP) {
-            state=POLL_ST_GET_PAUSE_7;
-          } else {
-            state=POLL_ST_IDLE;
-          }
-          break;
-        case POLL_ST_GET_PAUSE_7:
-          // we got 77
-          if(key==PS2_KEY_PAUSE) {
-            //('R');
-            // we received a complete Pause/Break, do something about it.
-            parse_key(0x80|PS2_KEY_PAUSE,TRUE);
-            parse_key(0x80|PS2_KEY_PAUSE,FALSE);
-          }
-          state=POLL_ST_IDLE;
-          break;
+            break;
         }
       }
     }
+  }
+}
+
+ISR(TIMER_vect) {
+  mat_scan();
+  //sw_scan();
+}
+
+static inline void scan_inputs(void) {
+  uint8_t data;
+
+  for(;;) {
+    if(mat_data_available()) {
+      data=mat_recv();
+      uart_puthex(data);
+    }
+    if(sw_data_available()) {
+
+      // handle special switches.
+      data=sw_recv();
+      uart_puthex(data);
+      if(data & SW_UP) {
+      } else {
+        // only act on key depress
+        switch(data & (SW_UP - 1)) {
+          case SW_A:
+            ps2_putc(PS2_KEY_F1);
+            ps2_putc(PS2_KEY_UP);
+            ps2_putc(PS2_KEY_F1);
+            break;
+          case SW_B:
+            ps2_putc(PS2_KEY_F2);
+            ps2_putc(PS2_KEY_UP);
+            ps2_putc(PS2_KEY_F2);
+            break;
+        }
+      }
+    }
+  }
+}
+
+void main(void) {
+  mode_init();
+  uart_init();
+
+  eeprom_read_config();
+
+  uart_config(uart_bps, uart_length, uart_parity, uart_stop);
+
+  if(mode_device()) {
+    ps2_init(PS2_MODE_DEVICE);
+
+    mat_init();
+    sw_init((1 << SW_A) | (1 << SW_B));
+
+    timer_init();
+
+    sei();
+    uart_putc('d');
+
+    scan_inputs();
+  } else {
+    data_init();
+    reset_init();
+    reset_set_hi();
+
+    if(globalopts & OPT_STROBE_LO)
+      data_strobe_hi();
+    else
+      data_strobe_lo();
+    ps2_init(PS2_MODE_HOST);
+
+    sei();
+    uart_putc('h');
+
+    poll_kb();
+	while(TRUE);
   }
 }
 

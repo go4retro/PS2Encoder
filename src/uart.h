@@ -46,7 +46,7 @@
 #define B460800	CALC_BPS(460800)
 #define B921600	CALC_BPS(921600)
 
-#if defined __AVR_ATmega162__ || defined __AVR_ATmega644__ || defined __AVR_ATmega644P__ || defined __AVR_ATmega1281__ || defined __AVR_ATmega2561__ || __AVR_ATmega128__
+#if defined __AVR_ATmega162__ || defined __AVR_ATmega644__ || defined __AVR_ATmega644P__ || defined __AVR_ATmega1281__ || defined __AVR_ATmega2561__ || defined __AVR_ATmega128__
 
 #  ifdef SWAP_UART
 #    define UDREA  UDRE1
@@ -177,7 +177,7 @@
 #  define USARTA_UDRE_vect USART_UDRE_vect
 #  define USARTA_RXC_vect USART_RXC_vect
 
-#elif defined __AVR_ATmega16__ || defined __AVR_ATmega8__
+#elif defined __AVR_ATmega165__ || defined __AVR_ATmega32__ || defined __AVR_ATmega16__ || defined __AVR_ATmega8__
 // only 1 uart
 #    define UDRA   UDR
 #    define RXCA   RXC
@@ -190,36 +190,47 @@
 #    define UCSRAB UCSRB
 #    define UCSRAC UCSRC
 #    define UDRIEA UDRIE
+#    define URSELA URSEL
 #    define U2XA   U2X
-#    define USARTA_UDRE_vect USART_UDRE_vect
-#    define USARTA_RXC_vect USART_RXC_vect
+#    if defined __AVR_ATmega165__
+#      define USARTA_UDRE_vect USART0_UDRE_vect
+#      define USARTA_RXC_vect USART0_RXC_vect
+#    else
+#      define USARTA_UDRE_vect USART_UDRE_vect
+#      define USARTA_RXC_vect USART_RXC_vect
+#    endif
+#    define USBSA  USBS
+#    define UCSZA0 UCSZ0
+#    define UCSZA1 UCSZ1
+#    define UPMA0  UPM0
+#    define UPMA1  UPM1
 
 #else
 #  error Unknown chip!
 #endif
 
-#if defined __AVR_ATmega8__ || __AVR_ATmega16__ || defined __AVR_ATmega32__  || defined __AVR_ATmega162__
+#if defined __AVR_ATmega8__ || defined __AVR_ATmega16__ || defined __AVR_ATmega32__  || defined __AVR_ATmega162__
 #  define UART0_CONFIG(l,p,s) do{\
                                  uint8_t __tmp; \
-                                 cli(); \
+                                 ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { \
                                  __tmp = UCSRAC; \
                                  __tmp = UCSRAC & (uint8_t)~(UART_LENGTH_MASK | UART_PARITY_MASK | UART_STOP_MASK); \
                                  UCSRAC = __tmp | _BV(URSELA) | (l & UART_LENGTH_MASK) | (p & UART_PARITY_MASK) | (s & UART_STOP_MASK); \
-                                 sei(); \
+                                 } \
                                 } while(0)
 #  define UART0_MODE_SETUP()  do { UCSRAC = _BV(URSELA) | _BV(UCSZA1) | _BV(UCSZA0); } while(0)
 #  if defined __AVR_ATmega162__
 #    define UART1_CONFIG(l,p,s) do{\
                                    uint8_t __tmp; \
-                                   cli(); \
+                                   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { \
                                    __tmp = UCSRBC; \
                                    __tmp = UCSRBC & (uint8_t)~(UART_LENGTH_MASK | UART_PARITY_MASK | UART_STOP_MASK); \
                                    UCSRBC = __tmp | _BV(URSELB) | (l & UART_LENGTH_MASK) | (p & UART_PARITY_MASK) | (s & UART_STOP_MASK); \
-                                   sei(); \
+                                   } \
                                   } while(0)
 #    define UART1_MODE_SETUP()  do { UCSRBC = _BV(URSELB) | _BV(UCSZB1) | _BV(UCSZB0); } while(0)
 #  endif
-#  else
+#else
 #  define UART0_CONFIG(l,p,s) do{\
                                  UCSRAC = (UCSRAC & (uint8_t)~(UART_LENGTH_MASK | UART_PARITY_MASK | UART_STOP_MASK)) |\
                                           (l & UART_LENGTH_MASK) | (p & UART_PARITY_MASK) | (s & UART_STOP_MASK); \
@@ -240,7 +251,8 @@ void uart_putc(uint8_t c);
 void uart_puthex(uint8_t hex);
 void uart_trace(void *ptr, uint16_t start, uint16_t len);
 void uart_flush(void);
-void uart_puts_P(prog_char *text);
+//void uart_puts_P(prog_char *text);
+void uart_puts_P(const char *text);
 uint8_t uart_data_available(void);
 void uart_putcrlf(void);
 
@@ -263,7 +275,8 @@ void uart0_putc(uint8_t data);
 void uart_puthex(uint8_t hex);
 void uart_trace(void *ptr, uint16_t start, uint16_t len);
 void uart0_flush(void);
-void uart0_puts_P(prog_char *text);
+//void uart0_puts_P(prog_char *text);
+void uart0_puts_P(const char *text);
 uint8_t uart0_data_available(void);
 void uart0_putcrlf(void);
 #  include <stdio.h>

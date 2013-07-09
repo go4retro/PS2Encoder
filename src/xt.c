@@ -16,9 +16,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-    ps2.c: Internal functions for host/device PS/2 modes
+    xt.c: Internal functions for host/device XT KB modes
 
-    timing information derived from http://panda.cs.ndsu.nodak.edu/~achapwes/PICmicro/PS2/ps2.htm
+    timing information derived from http://ilkerf.tripod.com/c64tower/F_Keyboard_FAQ.html#KEYBOARDFAQ_037
 */
 
 #include <inttypes.h>
@@ -27,26 +27,26 @@
 #include <util/atomic.h>
 #include <util/delay.h>
 #include "config.h"
-#include "ps2.h"
+#include "xt.h"
 #include "uart.h"
 
-static uint8_t rxbuf[1 << PS2_RX_BUFFER_SHIFT];
+static uint8_t rxbuf[1 << XT_RX_BUFFER_SHIFT];
 static volatile uint8_t rx_head;
 static volatile uint8_t rx_tail;
-static uint8_t txbuf[1 << PS2_TX_BUFFER_SHIFT];
+static uint8_t txbuf[1 << XT_TX_BUFFER_SHIFT];
 static volatile uint8_t tx_head;
 static volatile uint8_t tx_tail;
 
-static volatile ps2state_t ps2_state;
-static volatile uint8_t ps2_byte;
-static volatile uint8_t ps2_bit_count;
-static volatile uint8_t ps2_parity;
+static volatile xtstate_t xt_state;
+static volatile uint8_t xt_byte;
+static volatile uint8_t xt_bit_count;
+static volatile uint8_t xt_parity;
 
-static ps2mode_t ps2_mode;
+static xtmode_t xt_mode;
 
-static volatile uint8_t ps2_holdoff_count;
+static volatile uint8_t xt_holdoff_count;
 
-static void ps2_enable_clk_rise(void) {
+static void xt_enable_clk_rise(void) {
   // turn off IRQ
   CLK_INTCR &= (uint8_t)~_BV(CLK_INT);
   // reset flag
@@ -57,7 +57,7 @@ static void ps2_enable_clk_rise(void) {
   CLK_INTCR |= _BV(CLK_INT);
 }
 
-static void ps2_enable_clk_fall(void) {
+static void xt_enable_clk_fall(void) {
   // turn off IRQ
   CLK_INTCR &= (uint8_t)~_BV(CLK_INT);
   // reset flag
@@ -68,11 +68,11 @@ static void ps2_enable_clk_fall(void) {
   CLK_INTCR |= _BV(CLK_INT);
 }
 
-static void ps2_disable_clk(void) {
+static void xt_disable_clk(void) {
   CLK_INTCR &= (uint8_t)~_BV(CLK_INT);
 }
 
-static void ps2_enable_timer(uint8_t us) {
+static void xt_enable_timer(uint8_t us) {
   // clear flag.
   PS2_TIFR |= PS2_TIFR_DATA;
   // clear TCNT;
@@ -91,12 +91,12 @@ static void ps2_enable_timer(uint8_t us) {
   PS2_TIMSK |= PS2_TIMSK_DATA;
 }
 
-static void ps2_disable_timer(void) {
+static void xt_disable_timer(void) {
   // disable output compare IRQ
   PS2_TIMSK &= (uint8_t)~PS2_TIMSK_DATA;
 }
 
-static void ps2_write_byte(void) {
+static void xt_write_byte(void) {
   uint8_t tmp;
   /* Calculate buffer index */
   tmp = ( rx_head + 1 ) & PS2_RX_BUFFER_MASK;
@@ -105,65 +105,65 @@ static void ps2_write_byte(void) {
   if ( tmp == rx_tail ) {
     /* ERROR! Receive buffer overflow */
   }
-  rxbuf[tmp] = ps2_byte; /* Store received data in buffer */
+  rxbuf[tmp] = xt_byte; /* Store received data in buffer */
 }
 
-static void ps2_read_byte(void) {
-  ps2_bit_count = 0;
-  ps2_parity = 0;
-  ps2_byte = txbuf[( tx_tail + 1 ) & PS2_TX_BUFFER_MASK];  /* Start transmition */
+static void xt_read_byte(void) {
+  xt_bit_count = 0;
+  xt_parity = 0;
+  xt_byte = txbuf[( tx_tail + 1 ) & PS2_TX_BUFFER_MASK];  /* Start transmition */
 }
 
-static void ps2_commit_read_byte(void) {
+static void xt_commit_read_byte(void) {
   tx_tail = ( tx_tail + 1 ) & PS2_TX_BUFFER_MASK;      /* Store new index */
 }
 
-static uint8_t ps2_data_to_send(void) {
+static uint8_t xt_data_to_send(void) {
   return ( tx_head != tx_tail );
 }
 
-static void ps2_write_bit(void) {
-  ps2_state=PS2_ST_PREP_BIT;
+static void xt_write_bit(void) {
+  xt_state=PS2_ST_PREP_BIT;
   // set DATA..
-  switch (ps2_byte & 1) {
+  switch (xt_byte & 1) {
     case 0:
-      ps2_clear_data();
+      xt_clear_data();
       break;
     case 1:
-      ps2_parity++;
-      ps2_set_data();
+      xt_parity++;
+      xt_set_data();
       break;
   }
   // shift right.
-  ps2_byte= ps2_byte >> 1;
-  ps2_bit_count++;
+  xt_byte= xt_byte >> 1;
+  xt_bit_count++;
   // valid data now.
 }
 
-static void ps2_read_bit(void) {
-  ps2_byte = ps2_byte >> 1;
-  ps2_bit_count++;
-  if(ps2_read_data()) {
-    ps2_byte |= 0x80;
-    ps2_parity++;
+static void xt_read_bit(void) {
+  xt_byte = xt_byte >> 1;
+  xt_bit_count++;
+  if(xt_read_data()) {
+    xt_byte |= 0x80;
+    xt_parity++;
   }
 }
 
-static void ps2_write_parity(void) {
-  if((ps2_parity & 1) == 1) {
-    ps2_clear_data();
+static void xt_write_parity(void) {
+  if((xt_parity & 1) == 1) {
+    xt_clear_data();
   } else {
-    ps2_set_data();
+    xt_set_data();
   }
 }
 
-static void ps2_clear_counters(void) {
-  ps2_byte = 0;
-  ps2_bit_count = 0;
-  ps2_parity = 0;
+static void xt_clear_counters(void) {
+  xt_byte = 0;
+  xt_bit_count = 0;
+  xt_parity = 0;
 }
 
-void ps2_clear_buffers(void) {
+void xt_clear_buffers(void) {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     tx_head = 0;
     tx_tail = 0;
@@ -173,67 +173,67 @@ void ps2_clear_buffers(void) {
 }
 
 #ifdef PS2_ENABLE_DEVICE
-static void ps2_device_trigger_send(void) {
+static void xt_device_trigger_send(void) {
   // start clocking.
   // wait a half cycle
-  ps2_enable_timer(PS2_HALF_CYCLE);
+  xt_enable_timer(PS2_HALF_CYCLE);
   // bring DATA line low to ensure everyone knows our intentions
-  ps2_clear_data();
+  xt_clear_data();
 }
 #endif
 
 #ifdef PS2_ENABLE_HOST
-static void ps2_host_trigger_send(void) {
+static void xt_host_trigger_send(void) {
   // need to get devices attention...
-  ps2_disable_clk();
-  ps2_clear_clk();
+  xt_disable_clk();
+  xt_clear_clk();
   // yes, bring CLK lo for 100uS
-  ps2_enable_timer(100);
+  xt_enable_timer(100);
 }
 #endif
 
-static void ps2_trigger_send(void) {
+static void xt_trigger_send(void) {
   // set state
-  ps2_state = PS2_ST_PREP_START;
-  PS2_CALL(ps2_device_trigger_send(),ps2_host_trigger_send());
+  xt_state = PS2_ST_PREP_START;
+  PS2_CALL(xt_device_trigger_send(),xt_host_trigger_send());
 }
 
 #ifdef PS2_ENABLE_HOST
-static void ps2_host_check_for_data(void) {
-  if(ps2_data_to_send() != 0) {
-    ps2_trigger_send();
+static void xt_host_check_for_data(void) {
+  if(xt_data_to_send() != 0) {
+    xt_trigger_send();
   } else {
     // wait for something to receive
-    ps2_state = PS2_ST_IDLE;
-    ps2_enable_clk_fall();
+    xt_state = PS2_ST_IDLE;
+    xt_enable_clk_fall();
   }
 }
 
-static inline void ps2_host_timer_irq(void) {
-  ps2_disable_timer();
-  switch (ps2_state) {
+static inline void xt_host_timer_irq(void) {
+  xt_disable_timer();
+  switch (xt_state) {
     case PS2_ST_GET_BIT:
     case PS2_ST_GET_PARITY:
     case PS2_ST_GET_STOP:
       // do we have data to send to keyboard?
-      ps2_host_check_for_data();
+      xt_host_check_for_data();
       break;
     case PS2_ST_PREP_START:
       // we waited 100uS for device to notice us, bring DATA low and CLK hi
-      ps2_clear_data();
-      ps2_set_clk();
-      if(!ps2_read_clk()) {
+      xt_clear_data();
+      xt_set_clk();
+      if(!xt_read_clk()) {
         // kb wants to talk to us.
-        ps2_set_data();
-        ps2_enable_clk_fall();
-        ps2_state = PS2_ST_GET_BIT;
+        xt_set_data();
+        xt_enable_clk_fall();
+        xt_state = PS2_ST_GET_BIT;
       } else {
         // really start bit...
         // now, wait for falling CLK
-        ps2_enable_clk_fall();
-        //ps2_state = PS2_ST_SEND_START;  JLB incorrect
-        ps2_state = PS2_ST_PREP_BIT;
-        ps2_read_byte();
+        xt_enable_clk_fall();
+        //xt_state = PS2_ST_SEND_START;  JLB incorrect
+        xt_state = PS2_ST_PREP_BIT;
+        xt_read_byte();
       }
       break;
     default:
@@ -242,78 +242,78 @@ static inline void ps2_host_timer_irq(void) {
 }
 
 
-static void ps2_host_clk_irq(void) __attribute__((always_inline));
-static inline void ps2_host_clk_irq(void) {
-  switch(ps2_state) {
+static void xt_host_clk_irq(void) __attribute__((always_inline));
+static inline void xt_host_clk_irq(void) {
+  switch(xt_state) {
     case PS2_ST_WAIT_RESPONSE:
     case PS2_ST_IDLE:
       // keyboard sent start bit
       // should read it, but will assume it is good.
-      ps2_state = PS2_ST_GET_BIT;
+      xt_state = PS2_ST_GET_BIT;
       // if we don't get another CLK in 100uS, timeout.
-      ps2_enable_timer(100);
-      ps2_clear_counters();
+      xt_enable_timer(100);
+      xt_clear_counters();
       break;
     case PS2_ST_GET_BIT:
       // if we don't get another CLK in 100uS, timeout.
-      ps2_enable_timer(100);
+      xt_enable_timer(100);
       // read bit;
-      ps2_read_bit();
-      if(ps2_bit_count == 8) {
+      xt_read_bit();
+      if(xt_bit_count == 8) {
         // done, do Parity bit
-        ps2_state = PS2_ST_GET_PARITY;
+        xt_state = PS2_ST_GET_PARITY;
       }
       break;
     case PS2_ST_GET_PARITY:
       // if we don't get another CLK in 100uS, timeout.
-      ps2_enable_timer(100);
+      xt_enable_timer(100);
       // grab parity
       // for now, assume it is OK.
-      ps2_state = PS2_ST_GET_STOP;
+      xt_state = PS2_ST_GET_STOP;
       break;
     case PS2_ST_GET_STOP:
-      ps2_disable_timer();
+      xt_disable_timer();
       // stop bit
       // for now, assume it is OK.
-      ps2_write_byte();
+      xt_write_byte();
       // wait for CLK to rise before doing anything else.
-      ps2_state = PS2_ST_HOLDOFF;
-      ps2_enable_clk_rise();
+      xt_state = PS2_ST_HOLDOFF;
+      xt_enable_clk_rise();
       break;
     case PS2_ST_HOLDOFF:
       // CLK rose, so now, check for more data.
       // do we have data to send to keyboard?
-      ps2_host_check_for_data();
+      xt_host_check_for_data();
       break;
 //    case PS2_ST_SEND_START:
-//      ps2_state = PS2_ST_PREP_BIT;
+//      xt_state = PS2_ST_PREP_BIT;
 //      break;
     case PS2_ST_PREP_BIT:
       // time to send bits...
-      if(ps2_bit_count == 8) {
+      if(xt_bit_count == 8) {
         // we are done..., do parity
-        ps2_write_parity();
-        ps2_state = PS2_ST_SEND_PARITY;
+        xt_write_parity();
+        xt_state = PS2_ST_SEND_PARITY;
       } else {
-        ps2_write_bit();
+        xt_write_bit();
       }
       break;
     case PS2_ST_SEND_PARITY:
       // send stop bit.
-      ps2_set_data();
-      ps2_state = PS2_ST_SEND_STOP;
+      xt_set_data();
+      xt_state = PS2_ST_SEND_STOP;
       break;
     case PS2_ST_SEND_STOP:
-      if(!ps2_read_data()) {
+      if(!xt_read_data()) {
         // commit the send
-        ps2_commit_read_byte();
+        xt_commit_read_byte();
         /*
          * We could wait for the CLK hi, then check to see if we have more
          * data to send.  However, all cmds out have a required ack or response
          * so we'll just set to a non-IDLE state and wait for the CLK
          */
-        ps2_state = PS2_ST_WAIT_RESPONSE;
-        ps2_enable_clk_fall();
+        xt_state = PS2_ST_WAIT_RESPONSE;
+        xt_enable_clk_fall();
       } else {
         // wait for another cycle.  We should timeout here, I think
       }
@@ -323,227 +323,227 @@ static inline void ps2_host_clk_irq(void) {
   }
 }
 
-static void ps2_host_init(void) {
-  ps2_enable_clk_fall();
+static void xt_host_init(void) {
+  xt_enable_clk_fall();
 }
 #endif
 
 #ifdef PS2_ENABLE_DEVICE
-static void ps2_device_check_data(void) {
+static void xt_device_check_data(void) {
   // do we have data to send?
-  if(ps2_data_to_send()) {
-    ps2_trigger_send();
+  if(xt_data_to_send()) {
+    xt_trigger_send();
   } else {
-    ps2_state = PS2_ST_IDLE;
-    ps2_disable_timer();
-    ps2_enable_clk_fall();
+    xt_state = PS2_ST_IDLE;
+    xt_disable_timer();
+    xt_enable_clk_fall();
   }
 }
 
-static void ps2_device_host_inhibit(void) {
+static void xt_device_host_inhibit(void) {
   // CLK is low.  Host wants to talk to us.
   // turn off timer
-  ps2_disable_timer();
+  xt_disable_timer();
   // look for rising clock
-  ps2_enable_clk_rise();
-  ps2_state = PS2_ST_HOST_INHIBIT;
+  xt_enable_clk_rise();
+  xt_state = PS2_ST_HOST_INHIBIT;
   // release DATA line, if we happen to have it.
-  ps2_set_data();
+  xt_set_data();
 }
 
 
-static void ps2_device_timer_irq(void) __attribute__((always_inline));
-static inline void ps2_device_timer_irq(void) {
-  switch (ps2_state) {
+static void xt_device_timer_irq(void) __attribute__((always_inline));
+static inline void xt_device_timer_irq(void) {
+  switch (xt_state) {
     case PS2_ST_PREP_START:
       // disable the CLK IRQ
-      ps2_disable_clk();
+      xt_disable_clk();
       // clk the start bit
-      ps2_clear_clk();
-      ps2_state = PS2_ST_SEND_START;
+      xt_clear_clk();
+      xt_state = PS2_ST_SEND_START;
       break;
     case PS2_ST_SEND_START:
-      ps2_read_byte();
-      ps2_set_clk();  // bring CLK hi
-      if(ps2_read_clk()) {
-        ps2_write_bit();
+      xt_read_byte();
+      xt_set_clk();  // bring CLK hi
+      if(xt_read_clk()) {
+        xt_write_bit();
       } else {
-        ps2_device_host_inhibit();
+        xt_device_host_inhibit();
       }
       break;
     case PS2_ST_PREP_BIT:
-      ps2_clear_clk();
-      ps2_state = PS2_ST_SEND_BIT;
+      xt_clear_clk();
+      xt_state = PS2_ST_SEND_BIT;
       break;
     case PS2_ST_SEND_BIT:
-      ps2_set_clk();  // bring CLK hi
-      if(ps2_read_clk()) {
-        if(ps2_bit_count == 8) {
+      xt_set_clk();  // bring CLK hi
+      if(xt_read_clk()) {
+        if(xt_bit_count == 8) {
           // we are done..., do parity
-          ps2_write_parity();
-          ps2_state = PS2_ST_PREP_PARITY;
+          xt_write_parity();
+          xt_state = PS2_ST_PREP_PARITY;
         } else {
           // state is set in function.
-          ps2_write_bit();
+          xt_write_bit();
         }
       } else {
-        ps2_device_host_inhibit();
+        xt_device_host_inhibit();
       }
       break;
     case PS2_ST_PREP_PARITY:
       // clock parity
-      ps2_clear_clk();
-      ps2_state = PS2_ST_SEND_PARITY;
+      xt_clear_clk();
+      xt_state = PS2_ST_SEND_PARITY;
       break;
     case PS2_ST_SEND_PARITY:
-      ps2_set_clk();  // bring CLK hi
-      if(ps2_read_clk()) {
-        ps2_set_data();
-        ps2_state = PS2_ST_PREP_STOP;
+      xt_set_clk();  // bring CLK hi
+      if(xt_read_clk()) {
+        xt_set_data();
+        xt_state = PS2_ST_PREP_STOP;
       } else {
-        ps2_device_host_inhibit();
+        xt_device_host_inhibit();
       }
       break;
     case PS2_ST_PREP_STOP:
-      ps2_clear_clk();
-      ps2_state = PS2_ST_SEND_STOP;
+      xt_clear_clk();
+      xt_state = PS2_ST_SEND_STOP;
       break;
     case PS2_ST_SEND_STOP:
       // If host wanted to abort, they had to do it before now.
-      ps2_commit_read_byte();
-      ps2_set_clk();  // bring CLK hi
-      if(ps2_read_clk()) {
-        if(ps2_read_data()) {
+      xt_commit_read_byte();
+      xt_set_clk();  // bring CLK hi
+      if(xt_read_clk()) {
+        if(xt_read_data()) {
           // for some reason, you have to wait a while before sending again.
-          ps2_holdoff_count=PS2_SEND_HOLDOFF_COUNT;
-          ps2_state = PS2_ST_HOLDOFF;
+          xt_holdoff_count=PS2_SEND_HOLDOFF_COUNT;
+          xt_state = PS2_ST_HOLDOFF;
         } else {
           // Host wants to talk to us.
-          ps2_state = PS2_ST_WAIT_START;
+          xt_state = PS2_ST_WAIT_START;
         }
       } else {
-        ps2_device_host_inhibit();
+        xt_device_host_inhibit();
       }
       break;
     case PS2_ST_WAIT_START:
       // set CLK lo
-      ps2_clear_clk();
-      ps2_clear_counters();
+      xt_clear_clk();
+      xt_clear_counters();
       // read start bit
-      if(ps2_read_data()) {
+      if(xt_read_data()) {
         // not sure what you do if start bit is high...
-        ps2_set_clk();
-        ps2_state = PS2_ST_IDLE;
-        ps2_disable_timer();
-        ps2_enable_clk_fall();
+        xt_set_clk();
+        xt_state = PS2_ST_IDLE;
+        xt_disable_timer();
+        xt_enable_clk_fall();
       } else {
-        ps2_state = PS2_ST_GET_START;
+        xt_state = PS2_ST_GET_START;
       }
       break;
     case PS2_ST_GET_START:
-      ps2_set_clk();  // bring CLK hi
-      if(ps2_read_clk()) {
-        ps2_state = PS2_ST_WAIT_BIT;
+      xt_set_clk();  // bring CLK hi
+      if(xt_read_clk()) {
+        xt_state = PS2_ST_WAIT_BIT;
       } else {
-        ps2_device_host_inhibit();
+        xt_device_host_inhibit();
       }
       break;
     case PS2_ST_WAIT_BIT:
-      ps2_clear_clk();
+      xt_clear_clk();
       // you read incoming bits on falling clock.
-      ps2_read_bit();
-      ps2_state = PS2_ST_GET_BIT;
+      xt_read_bit();
+      xt_state = PS2_ST_GET_BIT;
       break;
     case PS2_ST_GET_BIT:
-      ps2_set_clk();  // bring CLK hi
-      if(ps2_read_clk()) {
-        if(ps2_bit_count == 8) {
+      xt_set_clk();  // bring CLK hi
+      if(xt_read_clk()) {
+        if(xt_bit_count == 8) {
           // done, do Parity bit
-          ps2_state = PS2_ST_GET_PARITY;
+          xt_state = PS2_ST_GET_PARITY;
         } else {
-          ps2_state = PS2_ST_WAIT_BIT;
+          xt_state = PS2_ST_WAIT_BIT;
         }
       } else {
         // host aborted send.
-        ps2_device_host_inhibit();
+        xt_device_host_inhibit();
       }
       break;
     case PS2_ST_GET_PARITY:
-      ps2_clear_clk();
+      xt_clear_clk();
       // ignore parity for now.
-      ps2_state = PS2_ST_WAIT_STOP;
+      xt_state = PS2_ST_WAIT_STOP;
       break;
     case PS2_ST_WAIT_STOP:
-      ps2_set_clk();  // bring CLK hi
-      if(ps2_read_clk()) {
-        if(ps2_read_data()) {
-          ps2_state = PS2_ST_WAIT_ACK;
+      xt_set_clk();  // bring CLK hi
+      if(xt_read_clk()) {
+        if(xt_read_data()) {
+          xt_state = PS2_ST_WAIT_ACK;
           // bing DATA low to ack
-          ps2_clear_data();
+          xt_clear_data();
           // commit data
-          //ps2_write_byte();  jlb, moved.
+          //xt_write_byte();  jlb, moved.
         } else {
-          ps2_state = PS2_ST_GET_PARITY;
+          xt_state = PS2_ST_GET_PARITY;
         }
       } else {
         // host aborted send.
-        ps2_device_host_inhibit();
+        xt_device_host_inhibit();
       }
       break;
     case PS2_ST_WAIT_ACK:
-      ps2_clear_clk();
-      ps2_state = PS2_ST_GET_ACK;
+      xt_clear_clk();
+      xt_state = PS2_ST_GET_ACK;
       break;
     case PS2_ST_GET_ACK:
-      ps2_set_clk();
-      ps2_set_data();
+      xt_set_clk();
+      xt_set_data();
       // we just need to wait a 50uS or so, to ensure the host saw the CLK go high
-      ps2_holdoff_count = 1;
-      ps2_state = PS2_ST_HOLDOFF;
-      ps2_write_byte();   //jlb moved
+      xt_holdoff_count = 1;
+      xt_state = PS2_ST_HOLDOFF;
+      xt_write_byte();   //jlb moved
       break;
     case PS2_ST_HOLDOFF:
-      ps2_holdoff_count--;
-      if(!ps2_holdoff_count) {
-        if(ps2_read_clk()) {
-          if(ps2_read_data()) {
-            ps2_device_check_data();
+      xt_holdoff_count--;
+      if(!xt_holdoff_count) {
+        if(xt_read_clk()) {
+          if(xt_read_data()) {
+            xt_device_check_data();
           } else {
-            ps2_state = PS2_ST_WAIT_START;
+            xt_state = PS2_ST_WAIT_START;
           }
         } else {
-          ps2_device_host_inhibit();
+          xt_device_host_inhibit();
         }
       }
       break;
     default:
-      ps2_disable_timer();
+      xt_disable_timer();
       break;
   }
 }
 
 
-static void ps2_device_clk_irq(void) __attribute__((always_inline));
-static inline void ps2_device_clk_irq(void) {
-  ps2_disable_clk();
+static void xt_device_clk_irq(void) __attribute__((always_inline));
+static inline void xt_device_clk_irq(void) {
+  xt_disable_clk();
 
-  switch(ps2_state) {
+  switch(xt_state) {
     case PS2_ST_IDLE:
     case PS2_ST_PREP_START:
       // host is holding us off.  Wait for CLK hi...
-      ps2_device_host_inhibit();
+      xt_device_host_inhibit();
       break;
     case PS2_ST_HOST_INHIBIT:
       // CLK went hi
-      if(ps2_read_data()) {
+      if(xt_read_data()) {
         // we can send if we need to.
-        ps2_device_check_data();
+        xt_device_check_data();
       } else {
         // host wants to send data, CLK is high.
         // wait half cycle to let things settle.
         // clock in data from host.
-        ps2_enable_timer(PS2_HALF_CYCLE);
-        ps2_state = PS2_ST_WAIT_START;
+        xt_enable_timer(PS2_HALF_CYCLE);
+        xt_state = PS2_ST_WAIT_START;
       }
       break;
     default:
@@ -551,26 +551,26 @@ static inline void ps2_device_clk_irq(void) {
   }
 }
 
-static void ps2_device_init(void) {
-  ps2_disable_clk();
-  ps2_disable_timer();
-  ps2_set_clk();
-  ps2_set_data();
+static void xt_device_init(void) {
+  xt_disable_clk();
+  xt_disable_timer();
+  xt_set_clk();
+  xt_set_data();
   // wait 600mS.
   _delay_ms(600);
-  ps2_putc(PS2_CMD_BAT);
+  xt_putc(PS2_CMD_BAT);
 }
 #endif
 
 ISR(PS2_TIMER_COMP_vect) {
-  PS2_CALL(ps2_device_timer_irq(),ps2_host_timer_irq());
+  PS2_CALL(xt_device_timer_irq(),xt_host_timer_irq());
 }
 
 ISR(CLK_INT_vect) {
-  PS2_CALL(ps2_device_clk_irq(),ps2_host_clk_irq());
+  PS2_CALL(xt_device_clk_irq(),xt_host_clk_irq());
 }
 
-uint8_t ps2_getc( void ) {
+uint8_t xt_getc( void ) {
   uint8_t tmptail;
 
   while ( rx_head == rx_tail ) {
@@ -584,7 +584,7 @@ uint8_t ps2_getc( void ) {
   return rxbuf[tmptail];
 }
 
-void ps2_putc( uint8_t data ) {
+void xt_putc( uint8_t data ) {
   uint8_t tmphead;
   // Calculate buffer index
   tmphead = ( tx_head + 1 ) & PS2_TX_BUFFER_MASK;
@@ -599,27 +599,27 @@ void ps2_putc( uint8_t data ) {
 
   // turn off IRQs
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    if(ps2_state == PS2_ST_IDLE) {
+    if(xt_state == PS2_ST_IDLE) {
       // start transmission;
-      ps2_trigger_send();
+      xt_trigger_send();
     }
   }
 }
 
-uint8_t ps2_data_available( void ) {
+uint8_t xt_data_available( void ) {
   return ( rx_head != rx_tail ); /* Return 0 (FALSE) if the receive buffer is empty */
 }
 
-void ps2_init(ps2mode_t mode) {
+void xt_init(ps2mode_t mode) {
   // set prescaler to System Clock/8
   PS2_TCCR = PS2_TCCR_DATA;
 
-  ps2_mode = mode;
-  ps2_clear_buffers();
+  xt_mode = mode;
+  xt_clear_buffers();
 
-  ps2_set_clk();
-  ps2_set_data();
+  xt_set_clk();
+  xt_set_data();
 
-  ps2_state = PS2_ST_IDLE;
-  PS2_CALL(ps2_device_init(),ps2_host_init());
+  xt_state = PS2_ST_IDLE;
+  PS2_CALL(xt_device_init(),xt_host_init());
 }

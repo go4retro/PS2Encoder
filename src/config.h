@@ -23,14 +23,15 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <avr/io.h>
 #include "autoconf.h"
 
-#define PS2_USE_HOST
-//#define PS2_USE_DEVICE
+#define PS2_ENABLE_HOST
+#define PS2_ENABLE_DEVICE
 
 #ifndef TRUE
-#define FALSE             0
-#define TRUE              (!FALSE)
+#define FALSE                 0
+#define TRUE                  (!FALSE)
 #endif
 
 // log2 of the PS2 buffer size, i.e. 6 for 64, 7 for 128, 8 for 256 etc.
@@ -45,29 +46,93 @@
 #define DYNAMIC_UART
 
 #if CONFIG_HARDWARE_VARIANT==1
-#  define PS2_PORT_DDR_CLK    DDRD
-#  define PS2_PORT_CLK_OUT    PORTD
-#  define PS2_PORT_CLK_IN     PIND
-#  define PS2_PIN_CLK         _BV(PD2)
-#  define PS2_PORT_DDR_DATA   DDRD
-#  define PS2_PORT_DATA_OUT   PORTD
-#  define PS2_PORT_DATA_IN    PIND
-#  define PS2_PIN_DATA        _BV(PD3)
+#  define PS2_CLK_DDR    DDRD
+#  define PS2_CLK_OUT    PORTD
+#  define PS2_CLK_IN     PIND
+#  define PS2_CLK_PIN    _BV(PD2)
+#  define PS2_DATA_DDR   DDRD
+#  define PS2_DATA_OUT   PORTD
+#  define PS2_DATA_IN    PIND
+#  define PS2_DATA_PIN   _BV(PD3)
 
-#  define DATA_SETDDR()       do { DDRB |= 0x0f; DDRC |= 0x0f; } while(0)
-#  define DATA_OUT(x)         do { PORTB = (PORTB & 0xf0) | (x & 0x0f); PORTC = (PORTC & 0xf0) | ((x & 0xf0) >> 4); } while(0)
+static inline __attribute__((always_inline)) void data_init(void) {
+  DDRB |= 0x0f;
+  PORTB &= ~0x0f;
+  DDRC |= 0x0f;
+  PORTC &= ~0x0f;
+  DDRD  |= _BV(PD7); // strobe
+}
 
-#  define RESET_SETDDR()      DDRD |= _BV(PD6)
-#  define RESET_ACTIVE()      PORTD &= ~_BV(PD6)
-#  define RESET_INACTIVE()    PORTD |= _BV(PD6)
+static inline __attribute__((always_inline)) void data_out(uint8_t c) {
+  PORTB = (PORTB & 0xf0) | (c & 0x0f);
+  PORTC = (PORTC & 0xf0) | ((c & 0xf0) >> 4);
+}
 
-#  define STROBE_SETDDR()     DDRD  |= _BV(PD7)
-#  define STROBE_HI()         PORTD |= _BV(PD7)
-#  define STROBE_LO()         PORTD &= ~_BV(PD7)
+static inline __attribute__((always_inline)) void data_strobe_hi(void) {
+  PORTD |= _BV(PD7);
+}
 
-#  define CONF_MODE_SETDDR()  do { DDRD &= ~_BV(PD5) ; PORTD |= _BV(PD5); } while(0)
-// this must return zero for config
-#  define CONF_MODE()         (!(PIND & _BV(PD5)))
+static inline __attribute__((always_inline)) void data_strobe_lo(void) {
+  PORTD &= ~_BV(PD7);
+}
+
+static inline __attribute__((always_inline)) void reset_init(void) {
+  DDRD |= _BV(PD6);
+  PORTD |= _BV(PD6);
+}
+
+static inline __attribute__((always_inline)) void reset_set_hi(void) {
+  PORTD |= _BV(PD6);
+}
+
+static inline __attribute__((always_inline)) void reset_set_lo(void) {
+  PORTD &= ~_BV(PD6);
+}
+
+static inline __attribute__((always_inline)) void mode_init(void) {
+  DDRD &= ~_BV(PD5);
+  PORTD |= _BV(PD5);
+  DDRD &= ~_BV(PD4);
+  PORTD |= _BV(PD4);
+}
+
+// this must return non-zero for config mode
+static inline __attribute__((always_inline)) uint8_t mode_config(void) {
+  return !(PIND & _BV(PD5));
+}
+
+// this must return non-zero for device mode
+static inline __attribute__((always_inline)) uint8_t mode_device(void) {
+  return !(PIND & _BV(PD4));
+}
+
+#  define SW_RX_BUFFER_SHIFT  2
+#  define PORT_SW_OUT         PORTB
+#  define PORT_SW_IN          PINB
+#  define PORT_SW_DDR         DDRB
+#  define SW_A                (PB4)
+#  define SW_B                (PB5)
+// can't use with Xtal
+//#  define SW_C                (PB6)
+//#  define SW_D                (PB7)
+
+#  define MAT_RX_BUFFER_SHIFT 4
+#  define MAT_ROW_LO_DDR      DDRB
+#  define MAT_ROW_LO_OUT      PORTB
+#  define MAT_ROW_MASK        0x0f
+#  define MAT_COL_LO_DDR      DDRC
+#  define MAT_COL_LO_OUT      PORTC
+#  define MAT_COL_LO_IN       PINC
+#  define MAT_COL_MASK        0x0f
+
+static inline __attribute__((always_inline)) void timer_init (void) {
+  TCCR0A |= _BV(WGM01);
+  TCCR0B |= (_BV(CS02) | _BV(CS00));
+  OCR0A = 65;
+  TIMSK0 |= _BV(OCIE0A);
+}
+
+#  define TIMER_vect          TIMER0_COMPA_vect
 #endif
 
 #endif /*CONFIG_H*/

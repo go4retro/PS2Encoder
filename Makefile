@@ -2,7 +2,7 @@
 
 # Define version number
 MAJOR = 0
-MINOR = 4
+MINOR = 5
 PATCHLEVEL = 0
 FIX = 0
 
@@ -159,8 +159,7 @@ FORMAT = ihex
 TARGET = PS2Encoder
 
 # List C source files here. (C dependencies are automatically generated.)
-#SRC = uart.c main.c ps2_lib.c ps2_device.c ps2_host.c ps2_mux.c
-SRC = uart.c main.c ps2.c ps2_kb.c eeprom.c
+SRC = uart.c main.c ps2.c ps2_kb.c eeprom.c switches.c matrix.c
 
 # Sample mechanism to add files to SRC line
 #ifeq ($(CONFIG_VARIABLE),4)
@@ -275,11 +274,15 @@ CFLAGS += -Wall
 CFLAGS += -Wstrict-prototypes
 # Add this if you want all warnings output as errors.
 CFLAGS += -Werror
-CFLAGS += -mshort-calls
+# Use this only on small uCs (program size-wise) and only as a last resort
+#CFLAGS += -mshort-calls
 #CFLAGS += -fno-unit-at-a-time
-#CFLAGS += -Wundef
-#CFLAGS += -Wunreachable-code
-#CFLAGS += -Wsign-compare
+CFLAGS += -Wundef
+CFLAGS += -Wextra
+CFLAGS += -Wunreachable-code
+CFLAGS += -Wshadow
+#CFLAGS += -Winline
+CFLAGS += -Wsign-compare
 CFLAGS += -Wa,-adhlns=$(OBJDIR)/$(*F).lst
 CFLAGS += -I$(OBJDIR)
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
@@ -288,13 +291,22 @@ CFLAGS += -ffunction-sections
 CFLAGS += -fdata-sections
 #CFLAGS += -mtiny-stack
 #CFLAGS += -mno-interrupts
-#CFLAGS += -mcall-prologues
+CFLAGS += -mcall-prologues
+CFLAGS += -ffreestanding
+
+CFLAGS += -fno-tree-scev-cprop
+CFLAGS += -fno-optimize-sibling-calls
+CFLAGS += -fno-tree-switch-conversion
+CFLAGS += -maccumulate-args
+CFLAGS += -mstrict-X
+CFLAGS += -flto
 
 # these are needed for GCC 4.3.2, which is more aggressive at inlining
 # gcc-4.2 knows one of those, but it tends to increase code size
 ifeq ($(shell $(CC) --version|gawk -f gcctest.awk),YES)
-CFLAGS += --param inline-call-cost=3
+#CFLAGS += --param inline-call-cost=3
 CFLAGS += -fno-inline-small-functions
+#CFLAGS += -finline-limit=3 
 CFLAGS += -fno-move-loop-invariants
 CFLAGS += -fno-split-wide-types
 
@@ -304,6 +316,7 @@ CFLAGS += -fno-split-wide-types
 #CFLAGS += -fno-reorder-blocks-and-partition
 #CFLAGS += -fno-reorder-functions
 #CFLAGS += -fno-toplevel-reorder
+#CFLAGS += -fno-tree-loop-optimize
 endif
 
 ifeq ($(CONFIG_STACK_TRACKING),y)
@@ -382,6 +395,7 @@ LDFLAGS += $(EXTMEMOPTS)
 LDFLAGS += $(patsubst %,-L%,$(EXTRALIBDIRS))
 LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
 LDFLAGS += -Wl,--gc-sections
+LDFLAGS += -flto
 #LDFLAGS	+= -Wl,--section-start=.text=$(BOOTLOADERSTARTADR)
 #LDFLAGS += -T linker_script.x
 ifeq ($(CONFIG_LINKER_RELAX),y)
