@@ -265,7 +265,6 @@ void uart_putcrlf(void);
 #define uart_flush()            do {} while(0)
 #define uart_puts_P(x)          do {} while(0)
 #define uart_putcrlf()          do {} while(0)
-#define uart_trace(a,b,c)       do {} while(0)
 
 #endif
 
@@ -289,7 +288,6 @@ void uart0_putcrlf(void);
 #  define uart0_puts_P(x)        do {} while(0)
 #  define uart0_data_available() do {} while(0)
 #  define uart0_putcrlf()        do {} while(0)
-#  define uart0_trace(a,b,c)     do {} while(0)
 #endif
 
 #ifdef ENABLE_UART1

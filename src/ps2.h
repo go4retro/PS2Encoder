@@ -188,18 +188,20 @@ typedef enum { PS2_MODE_DEVICE = 1, PS2_MODE_HOST = 2 } ps2mode_t;
 #  define CLK_INTDR     MCUCR     // INT Direction Register
 #  define CLK_INTCR     GICR      // INT Control Register
 #  define CLK_INTFR     GIFR      // INT Flag Register
-#  if PS2_PIN_CLK == _BV(PD3)
+#  if PS2_CLK_PIN == _BV(PD3)
 #    define CLK_ISC0      ISC10
 #    define CLK_ISC1      ISC11
 #    define CLK_INT       INT1
 #    define CLK_INTF      INTF1
 #    define CLK_INT_vect  INT1_vect
-#  else
+#  elif PS2_CLK_PIN == _BV(PD2)
 #    define CLK_ISC0      ISC00
 #    define CLK_ISC1      ISC01
 #    define CLK_INT       INT0
 #    define CLK_INTF      INTF0
 #    define CLK_INT_vect  INT0_vect
+#  else
+#    error "Please define CLK INT Settings"
 #  endif
 #else
 #  define CLK_INTDR     EICRA     // INT Direction Register

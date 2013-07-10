@@ -293,18 +293,12 @@ CFLAGS += -fdata-sections
 #CFLAGS += -mno-interrupts
 CFLAGS += -mcall-prologues
 CFLAGS += -ffreestanding
-
 CFLAGS += -fno-tree-scev-cprop
 CFLAGS += -fno-optimize-sibling-calls
 CFLAGS += -fno-tree-switch-conversion
 CFLAGS += -maccumulate-args
 CFLAGS += -mstrict-X
 CFLAGS += -flto
-
-# these are needed for GCC 4.3.2, which is more aggressive at inlining
-# gcc-4.2 knows one of those, but it tends to increase code size
-ifeq ($(shell $(CC) --version|gawk -f gcctest.awk),YES)
-#CFLAGS += --param inline-call-cost=3
 CFLAGS += -fno-inline-small-functions
 #CFLAGS += -finline-limit=3 
 CFLAGS += -fno-move-loop-invariants
@@ -317,7 +311,6 @@ CFLAGS += -fno-split-wide-types
 #CFLAGS += -fno-reorder-functions
 #CFLAGS += -fno-toplevel-reorder
 #CFLAGS += -fno-tree-loop-optimize
-endif
 
 ifeq ($(CONFIG_STACK_TRACKING),y)
   CFLAGS += -finstrument-functions
@@ -504,6 +497,18 @@ DEBUG_HOST = localhost
 #============================================================================
 
 
+# Presume we're in a project directory so name the program like the current
+# directory. Set PROGRAM to override.
+ifeq ($(TARGET),)
+  TARGET := $(notdir $(CURDIR))
+endif
+ 
+# Presume the C and asm source files to be located in the subdirectory 'src'.
+# Set SRCDIR to override.
+ifeq ($(SRCDIR),)
+  SRCDIR := src
+endif
+ 
 # De-dupe the list of C source files
 CSRC := $(sort $(SRC))
 
