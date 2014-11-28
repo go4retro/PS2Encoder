@@ -23,8 +23,11 @@
 #ifndef SWITCHES_H
 #define SWITCHES_H
 
-#if defined PORT_SW_IN
-#else
+#ifndef SW_RX_BUFFER_SHIFT
+#  define SW_RX_BUFFER_SHIFT 2     /* log2 of size */
+#endif
+
+#if !defined PORT_SW_DDR
 #  error Unknown PORT_SW!
 #endif
 
@@ -32,7 +35,8 @@
 
 void sw_init(uint8_t mask);
 uint8_t sw_data_available(void);
-uint8_t sw_recv(void);
+void sw_putc( uint8_t sw);
+uint8_t sw_getc( void );
 void sw_scan(void);
 
 #endif // SWITCHES_H

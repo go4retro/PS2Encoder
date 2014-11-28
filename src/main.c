@@ -104,7 +104,7 @@ static void ps2_to_ascii(uint8_t code) {
   // Yes, there are many more elegant ways of handling the mapping.  But, this is simple, and easy to rework.
   switch(code) {
     case PS2_KEY_TAB:
-      MAP(0x08,0x08,0x08);
+      MAP(0x09,0x09,0x09);
       break;
     case PS2_KEY_BACKQUOTE:
       MAP('`','~',0);
@@ -299,7 +299,7 @@ static void ps2_to_ascii(uint8_t code) {
       break;
     case PS2_KEY_BS:
       if(globalopts & OPT_BACKSPACE)
-        MAP(0x09,0x09,0x09);
+        MAP(0x08,0x08,0x08);
       else
         MAP(0x7f,0x7f,0x7f);
       break;
@@ -1069,7 +1069,7 @@ static inline __attribute__((always_inline)) void scan_inputs(void) {
     if(sw_data_available()) {
 
       // handle special switches.
-      data=sw_recv();
+      data=sw_getc();
       uart_puthex(data);
       if(data & SW_UP) {
       } else {

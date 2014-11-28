@@ -20,26 +20,19 @@
 
 */
 
+// TODO: if putc has depressed a IO pin, don't record it as a switch closure.
+
 #include <avr/io.h>
 #include <inttypes.h>
 #include "config.h"
 #include "switches.h"
 
-static unsigned char rx_buf[1 << SW_RX_BUFFER_SHIFT];
+static unsigned char rx_buf[_BV( SW_RX_BUFFER_SHIFT)];
 static volatile uint8_t rx_head;
 static volatile uint8_t rx_tail;
 
 static uint8_t cache;
 static uint8_t in_mask;
-
-void sw_init(uint8_t mask) {
-  // bring them HI-Z
-  PORT_SW_OUT |= mask;
-  // bring them to inputs;
-  PORT_SW_DDR &= (uint8_t)~mask;
-  in_mask = mask;
-  cache=(PORT_SW_IN & mask);
-}
 
 static void sw_store(uint8_t data) {
   
@@ -56,7 +49,23 @@ uint8_t sw_data_available( void ) {
   return ( rx_head != rx_tail ); /* Return 0 (FALSE) if the receive buffer is empty */
 }
 
-uint8_t sw_recv( void ) {
+void sw_putc( uint8_t sw) {
+  // bit 7 indicates key up.
+  uint8_t state=(sw & SW_UP);
+  sw = _BV(sw); // turn into bit mask;
+  if(sw & in_mask) {
+    if(state) {
+      // bring to input and set HI-Z
+      PORT_SW_DDR &= (uint8_t)~sw;
+      PORT_SW_OUT |= sw;
+    } else {
+      PORT_SW_DDR |= sw;
+      PORT_SW_OUT &= (uint8_t)~sw;
+    }
+  }
+}
+
+uint8_t sw_getc( void ) {
   
   while ( rx_head == rx_tail ) {
     ;
@@ -101,3 +110,11 @@ void sw_scan(void) {
   }
 }
 
+void sw_init(uint8_t mask) {
+  // bring them HI-Z
+  PORT_SW_OUT |= mask;
+  // bring them to inputs;
+  PORT_SW_DDR &= (uint8_t)~mask;
+  in_mask = mask;
+  cache=(PORT_SW_IN & mask);
+}
