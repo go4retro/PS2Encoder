@@ -113,10 +113,10 @@ static void ps2_to_ascii(uint8_t code) {
       MAP('q','Q',CTRL('q'));
       break;
     case PS2_KEY_1:
-      MAP('1','1',0);
+      MAP('1','!',0);
       break;
     case PS2_KEY_NUM_1:
-      MAP('1',0,0);
+      MAP('1','1',0);
       break;
     case PS2_KEY_Z:
       MAP('z','Z',CTRL('z'));
