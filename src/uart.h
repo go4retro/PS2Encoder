@@ -150,7 +150,7 @@
 #    define USARTB_RXC_vect USART1_RXC_vect
 #  endif
 
-#elif defined __AVR_ATmega28__ || defined __AVR_ATmega48__ || defined __AVR_ATmega88__ || defined __AVR_ATmega168__
+#elif defined __AVR_ATmega28__ || defined __AVR_ATmega48__ || defined __AVR_ATmega88__ || defined __AVR_ATmega168__ || defined __AVR_ATmega328__ || defined __AVR_ATmega328P__
 #  define UDREA  UDRE0
 #  define UCSZA0 UCSZ00
 #  define UCSZA1 UCSZ01
@@ -249,7 +249,7 @@
 #  define UART1_MODE_SETUP()  do { UCSRBC = _BV(UCSZB1) | _BV(UCSZB0); } while(0)
 #endif
 
-#if defined ENABLE_UART0 || defined ENABLE_UART1
+#if defined UART0_ENABLE || defined UART1_ENABLE
 #include <avr/pgmspace.h>
 void uart_init(void);
 uint8_t uart_getc(void);
@@ -274,7 +274,7 @@ void uart_putcrlf(void);
 
 #endif
 
-#if defined ENABLE_UART0
+#if defined UART0_ENABLE
 uint8_t uart0_getc(void);
 void uart0_putc(uint8_t data);
 void uart_puthex(uint8_t hex);
@@ -296,7 +296,7 @@ void uart0_putcrlf(void);
 #  define uart0_putcrlf()        do {} while(0)
 #endif
 
-#ifdef ENABLE_UART1
+#ifdef UART1_ENABLE
 uint8_t uart1_getc(void);
 void uart1_putc(char c);
 void uart1_puts(char* str);
@@ -336,13 +336,13 @@ typedef enum {PARITY_NONE = UART_PARITY_NONE,
               PARITY_ODD = UART_PARITY_ODD
              } uartpar_t;
 
-#if defined ENABLE_UART0 && defined DYNAMIC_UART
+#if defined UART0_ENABLE && defined DYNAMIC_UART
 void uart_config(uint16_t rate, uartlen_t length, uartpar_t parity, uartstop_t stopbits);
 #else
 #define uart_config(bps, length, parity, stopbits) do {} while(0)
 #endif
 
-#if defined ENABLE_UART1 && defined DYNAMIC_UART
+#if defined UART1_ENABLE && defined DYNAMIC_UART
 void uart1_config(uint16_t rate, uartlen_t length, uartpar_t parity, uartstop_t stopbits);
 #else
 #define uart1_config(bps, length, parity, stopbits) do {} while(0)

@@ -237,7 +237,7 @@ typedef enum { PS2_MODE_DEVICE = 1, PS2_MODE_HOST = 2 } ps2mode_t;
 #  define PS2_TIMSK             TIMSK
 #  define PS2_TIMSK_DATA        _BV(OCIE2)
 
-#elif defined __AVR_ATmega28__ || defined __AVR_ATmega48__ || defined __AVR_ATmega88__ || defined __AVR_ATmega168__
+#elif defined __AVR_ATmega28__ || defined __AVR_ATmega48__ || defined __AVR_ATmega88__ || defined __AVR_ATmega168__ || defined __AVR_ATmega328__
 
 #  define PS2_TIMER_COMP_vect   TIMER2_COMPA_vect
 #  define PS2_OCR               OCR2A

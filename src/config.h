@@ -41,7 +41,7 @@
 // log2 of the XT buffer size, i.e. 6 for 64, 7 for 128, 8 for 256 etc.
 #define XT_BUFFER_SHIFT     5
 
-#define ENABLE_UART0
+#define UART0_ENABLE
 // log2 of the UART buffer size, i.e. 6 for 64, 7 for 128, 8 for 256 etc.
 #define UART0_TX_BUFFER_SHIFT  7
 

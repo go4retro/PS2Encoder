@@ -29,7 +29,7 @@
 #include "config.h"
 #include "uart.h"
 
-#ifdef ENABLE_UART0
+#ifdef UART0_ENABLE
 #  if defined UART0_TX_BUFFER_SHIFT && UART0_TX_BUFFER_SHIFT > 0
 static uint8_t          tx0_buf[1 << UART0_TX_BUFFER_SHIFT];
 static volatile uint8_t tx0_tail;
@@ -42,7 +42,7 @@ static volatile uint8_t rx0_head;
 #  endif
 #endif
 
-#ifdef ENABLE_UART1
+#ifdef UART1_ENABLE
 #  if defined UART1_TX_BUFFER_SHIFT && UART1_TX_BUFFER_SHIFT > 0
 static uint8_t          tx1_buf[1 << UART1_TX_BUFFER_SHIFT];
 static volatile uint8_t tx1_tail;
@@ -56,7 +56,7 @@ static volatile uint8_t rx1_tail;
 #endif
 
 /* UART0 Interrupt handlers */
-#if defined ENABLE_UART0
+#if defined UART0_ENABLE
 #  if defined UART0_TX_BUFFER_SHIFT && UART0_TX_BUFFER_SHIFT > 0
 ISR(USARTA_UDRE_vect) {
   if ( tx0_head != tx0_tail ) {
@@ -214,7 +214,7 @@ static int ioputc(char c, FILE *stream) {
 static FILE mystdout = FDEV_SETUP_STREAM(ioputc, NULL, _FDEV_SETUP_WRITE);
 #endif
 
-#ifdef ENABLE_UART1
+#ifdef UART1_ENABLE
 #  if defined UART1_TX_BUFFER_SHIFT && UART1_TX_BUFFER_SHIFT > 0
 ISR(USARTB_UDRE_vect) {
   if ( tx1_head != tx1_tail ) {
@@ -282,11 +282,11 @@ void uart1_config(uint16_t rate, uartlen_t length, uartpar_t parity, uartstop_t 
 #  endif
 #endif
 
-#if defined ENABLE_UART0 || defined ENABLE_UART1
+#if defined UART0_ENABLE || defined UART1_ENABLE
 /* Initialize UART */
 void uart_init(void) {
   /* Set the baud rate */
-#  if defined ENABLE_UART0
+#  if defined UART0_ENABLE
   UART0_MODE_SETUP();
 
   UBRRAH = CALC_BPS(UART0_BAUDRATE) >> 8;
@@ -321,7 +321,7 @@ void uart_init(void) {
   stdout = &mystdout;
 #  endif
 
-#  ifdef ENABLE_UART1
+#  ifdef UART1_ENABLE
   UART1_MODE_SETUP();
 
   UBRRBH = CALC_BPS(UART1_BAUDRATE) >> 8;

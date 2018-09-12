@@ -180,7 +180,7 @@ typedef enum { XT_MODE_DEVICE = 1, XT_MODE_HOST = 2 } xtmode_t;
 //#    define XT_CLK_INTF       INTF0
 //#    define XT_CLK_INT_vect   INT0_vect
 //#  endif
-#elif defined __AVR_ATmega28__ || defined __AVR_ATmega48__ || defined __AVR_ATmega88__ || defined __AVR_ATmega168__
+#elif defined __AVR_ATmega28__ || defined __AVR_ATmega48__ || defined __AVR_ATmega88__ || defined __AVR_ATmega168__ || defined __AVR_ATmega328__
 #  if XT_CLK_PIN == _BV(PD3)
 #    define XT_CLK_INTDR        EICRA     // INT Direction Register
 #    define XT_CLK_INTCR        EIMSK     // INT Control Register
@@ -223,7 +223,7 @@ typedef enum { XT_MODE_DEVICE = 1, XT_MODE_HOST = 2 } xtmode_t;
 #  define XT_TIMSK              TIMSK
 #  define XT_TIMSK_DATA         _BV(OCIE2)
 
-#elif defined __AVR_ATmega28__ || defined __AVR_ATmega48__ || defined __AVR_ATmega88__ || defined __AVR_ATmega168__
+#elif defined __AVR_ATmega28__ || defined __AVR_ATmega48__ || defined __AVR_ATmega88__ || defined __AVR_ATmega168__ || defined __AVR_ATmega328__
 #  define XT_TIMER_COMP_vect    TIMER0_COMPA_vect
 #  define XT_OCR                OCR0A
 #  define XT_TCNT               TCNT0
