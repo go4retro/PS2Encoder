@@ -724,8 +724,8 @@ static void set_options(uint8_t key) {
     switch(key) {
     case PS2_KEY_ENTER:
       globalopts |= OPT_CRLF;
-      send_raw('C');
-      send_raw('L');
+      send_raw('c');
+      send_raw('l');
       break;
     case PS2_KEY_7:       // 7 bit length
       uart_length = LENGTH_7;
@@ -765,23 +765,33 @@ static void set_options(uint8_t key) {
         OSCCAL++;
       send_option('+',OSCCAL < 0xff);
       break;
+    case PS2_KEY_L:   // LOW RESET STROBE
+      globalopts &= (uint8_t)~OPT_RESET_HI;
+      reset_set_hi();
+      send_raw('L');
+      break;
+    case PS2_KEY_H:   // HI RESET STROBE
+      globalopts |= OPT_RESET_HI;
+      reset_set_lo();
+      send_raw('H');
+      break;
     }
   } else {
     switch(key) {
     case PS2_KEY_ENTER:
         globalopts &= (uint8_t)~OPT_CRLF;
-        send_raw('C');
-        send_raw('R');
+        send_raw('c');
+        send_raw('r');
       break;
     case PS2_KEY_P:       // Increase strobe pulse length
       if(pulselen)
         pulselen--;
-      send_option('P',pulselen);
+      send_option('p',pulselen);
       break;
     case PS2_KEY_I:       // Increase reset pulse length
       if(resetlen)
         resetlen--;
-      send_option('I',resetlen);
+      send_option('i',resetlen);
       break;
     case PS2_KEY_T:
       if(holdoff)
@@ -806,12 +816,12 @@ static void set_options(uint8_t key) {
     case PS2_KEY_L:   // LOW STROBE
       globalopts |= OPT_STROBE_LO;
       data_strobe_hi();
-      send_raw('L');
+      send_raw('l');
       break;
     case PS2_KEY_H:   // HI STROBE
       globalopts &= (uint8_t)~OPT_STROBE_LO;
       data_strobe_lo();
-      send_raw('H');
+      send_raw('h');
       break;
     case PS2_KEY_0:   // 110 bps
       uart_bps = CALC_BPS(110);
@@ -859,21 +869,21 @@ static void set_options(uint8_t key) {
       break;
     case PS2_KEY_E:   // Even Parity
       uart_parity = PARITY_EVEN;
-      send_raw('E');
+      send_raw('e');
       break;
     case PS2_KEY_N:   // No Parity
       uart_parity = PARITY_NONE;
-      send_raw('N');
+      send_raw('n');
       break;
     case PS2_KEY_BS:   // Use Backspace
       globalopts |= OPT_BACKSPACE;
-      send_raw('B');
-      send_raw('S');
+      send_raw('b');
+      send_raw('s');
       break;
     case PS2_KEY_DELETE | 0x80:   // Use Delete
       globalopts &= (uint8_t)~OPT_BACKSPACE;
-      send_raw('D');
-      send_raw('L');
+      send_raw('d');
+      send_raw('l');
       break;
     case PS2_KEY_Q:
       send_raw('<');
@@ -886,7 +896,7 @@ static void set_options(uint8_t key) {
       break;
     case PS2_KEY_W:   // Save Data
       eeprom_write_config();
-      send_raw('W');
+      send_raw('w');
       break;
     }
   }
