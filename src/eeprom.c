@@ -48,6 +48,8 @@ static EEMEM struct {
   uint8_t   uart_parity;
   uint8_t   uart_stop;
   uint8_t   holdoff;
+  uint8_t   pulselen;
+  uint8_t   resetlen;
 } epromconfig;
 
 /**
@@ -69,6 +71,8 @@ void eeprom_read_config(void) {
   uart_parity        = PARITY_NONE;
   uart_stop          = STOP_1;
   holdoff            = 0;
+  pulselen           = 1;
+  resetlen           = 1;
 
   size = eeprom_read_word(&epromconfig.structsize);
 
@@ -97,6 +101,8 @@ void eeprom_read_config(void) {
   uart_stop   = (uartstop_t)eeprom_read_byte(&epromconfig.uart_stop);
 
   holdoff = eeprom_read_byte(&epromconfig.holdoff);
+  pulselen = eeprom_read_byte(&epromconfig.pulselen);
+  resetlen = eeprom_read_byte(&epromconfig.resetlen);
 
   /* Paranoia: Set EEPROM address register to the dummy entry */
   EEAR = 0;
@@ -122,10 +128,12 @@ void eeprom_write_config(void) {
   eeprom_write_byte(&epromconfig.uart_parity, uart_parity);
   eeprom_write_byte(&epromconfig.uart_stop, uart_stop);
   eeprom_write_byte(&epromconfig.holdoff, holdoff);
+  eeprom_write_byte(&epromconfig.pulselen, pulselen);
+  eeprom_write_byte(&epromconfig.resetlen, resetlen);
 
   /* Calculate checksum over EEPROM contents */
   checksum = 0;
-  for (i=2;i<sizeof(epromconfig);i++)
+  for (i = 2;i < sizeof(epromconfig); i++)
     checksum += eeprom_read_byte((uint8_t *) i);
 
   /* Store checksum to EEPROM */

@@ -63,6 +63,8 @@ static uint8_t config;
 static uint8_t led_state=0;
 uint8_t globalopts;
 uint8_t holdoff;
+uint8_t pulselen;
+uint8_t resetlen;
 uint16_t uart_bps;
 uartlen_t uart_length;
 uartpar_t uart_parity;
@@ -70,17 +72,35 @@ uartstop_t uart_stop;
 uint8_t  type_delay;
 uint8_t  type_rate;
 
+static inline void delay_strobe(uint8_t delay) {
+  uint8_t i;
+
+  if (!delay)
+    return;
+  for(i = 0; i < delay; i++)
+    _delay_us(1);
+}
+
+static inline void delay_reset(uint8_t delay) {
+  uint8_t i;
+
+  if (!delay)
+    return;
+  for(i = 0; i < delay; i++)
+    _delay_us(10);
+}
+
 static inline void send_raw(uint8_t key) {
   // send via RS232
   uart_putc(key);
   data_out(key);
   if(globalopts & OPT_STROBE_LO) {
     data_strobe_lo();
-    _delay_us(1);
+    delay_strobe(pulselen);
     data_strobe_hi();
   } else {
     data_strobe_hi();
-    _delay_us(1);
+    delay_strobe(pulselen);
     data_strobe_lo();
   }
   key = holdoff;
@@ -715,6 +735,16 @@ static void set_options(uint8_t key) {
       uart_length = LENGTH_8;
       send_raw('*');
       break;
+    case PS2_KEY_P:       // Increase strobe pulse length
+      if(pulselen < 0xff)
+        pulselen++;
+      send_option('P',pulselen < 0xff);
+      break;
+    case PS2_KEY_I:       // Increase reset pulse length
+      if(resetlen < 0xff)
+        resetlen++;
+      send_option('P',resetlen < 0xff);
+      break;
     case PS2_KEY_T:       // Increase send delay
       if(holdoff < 0xff)
         holdoff++;
@@ -743,8 +773,19 @@ static void set_options(uint8_t key) {
         send_raw('C');
         send_raw('R');
       break;
+    case PS2_KEY_P:       // Increase strobe pulse length
+      if(pulselen)
+        pulselen--;
+      send_option('P',pulselen);
+      break;
+    case PS2_KEY_I:       // Increase reset pulse length
+      if(resetlen)
+        resetlen--;
+      send_option('I',resetlen);
+      break;
     case PS2_KEY_T:
-      holdoff--;
+      if(holdoff)
+        holdoff--;
       send_option('t',holdoff);
       break;
     case PS2_KEY_R:       // Decrease Typematic rate
@@ -834,7 +875,7 @@ static void set_options(uint8_t key) {
       send_raw('D');
       send_raw('L');
       break;
-    case PS2_KEY_P:
+    case PS2_KEY_Q:
       send_raw('<');
       sendhex(OSCCAL);
       send_raw(':');
@@ -867,9 +908,15 @@ static void parse_key(uint8_t key, uint8_t keydown) {
   if((meta & POLL_FLAG_CTRL_ALT) == POLL_FLAG_CTRL_ALT && key == (0x80 | PS2_KEY_DELETE) && keydown) {
     // CTRL/ALT/DEL is pressed.
     // bring RESET line low
-    reset_set_lo();
-    _delay_us(1);
-    reset_set_hi();
+    if(globalopts & OPT_RESET_HI) {
+      reset_set_hi();
+      delay_reset(resetlen);
+      reset_set_lo();
+    } else {
+      reset_set_lo();
+      delay_reset(resetlen);
+      reset_set_hi();
+    }
   } else if(mode_config() && (meta&POLL_FLAG_CTRL_ALT) == POLL_FLAG_CTRL_ALT && key == PS2_KEY_BS && keydown) {
     // CTRL/ALT/BS config mode
     config ^= KB_CONFIG;
@@ -1121,6 +1168,10 @@ void main(void) {
       data_strobe_hi();
     else
       data_strobe_lo();
+    if(globalopts & OPT_RESET_HI)
+      reset_set_lo();
+    else
+      reset_set_hi();
     ps2_init(PS2_MODE_HOST);
     xt_init(XT_MODE_DEVICE);
 
