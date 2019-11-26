@@ -71,8 +71,8 @@ void eeprom_read_config(void) {
   uart_parity        = PARITY_NONE;
   uart_stop          = STOP_1;
   holdoff            = 0;
-  pulselen           = 1;
-  resetlen           = 1;
+  pulselen           = 0;
+  resetlen           = 0;
 
   size = eeprom_read_word(&epromconfig.structsize);
 

@@ -72,20 +72,16 @@ uartstop_t uart_stop;
 uint8_t  type_delay;
 uint8_t  type_rate;
 
-static inline void delay_strobe(uint8_t delay) {
+static inline __attribute__((always_inline)) void delay_strobe(uint8_t delay) {
   uint8_t i;
 
-  if (!delay)
-    return;
   for(i = 0; i < delay; i++)
     _delay_us(1);
 }
 
-static inline void delay_reset(uint8_t delay) {
+static inline __attribute__((always_inline)) void delay_reset(uint8_t delay) {
   uint8_t i;
 
-  if (!delay)
-    return;
   for(i = 0; i < delay; i++)
     _delay_us(10);
 }
@@ -991,6 +987,10 @@ static void set_options(uint8_t key) {
       sendhex(globalopts);
       send_raw(':');
       sendhex(holdoff);
+      send_raw(':');
+      sendhex(pulselen);
+      send_raw(':');
+      sendhex(resetlen);
       send_raw('>');
       break;
     case PS2_KEY_W:   // Save Data
