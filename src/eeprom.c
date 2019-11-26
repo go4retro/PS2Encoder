@@ -64,9 +64,9 @@ void eeprom_read_config(void) {
   uint8_t checksum, tmp;
 
   /* Set default values */
-  globalopts         |= OPT_CRLF;              /* CRLF enabled */
-  globalopts         |= OPT_BACKSPACE;         /* Use BS for Backspace */
-  uart_bps           = CALC_BPS(9600);         /* 9600 for starters */
+  globalopts         |= OPT_CRLF;                 /* CRLF enabled */
+  globalopts         |= OPT_BACKSPACE;            /* Use BS for Backspace */
+  uart_bps           = CALC_BPS(UART0_BAUDRATE);  /* 9600 for starters */
   uart_length        = LENGTH_8;
   uart_parity        = PARITY_NONE;
   uart_stop          = STOP_1;
