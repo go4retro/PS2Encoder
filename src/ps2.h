@@ -23,6 +23,23 @@
 #ifndef PS2_H
 #define PS2_H
 
+// if not defined elsewhere, define both here.
+#if defined PS2_ENABLE_HOST || defined PS2_ENABLE_DEVICE
+#else
+#  define PS2_ENABLE_HOST
+#  define PS2_ENABLE_DEVICE
+#endif
+
+// if not defined elsewhere, define both here.
+#ifndef PS2_RX_BUFFER_SHIFT
+#  define PS2_RX_BUFFER_SHIFT 5
+#endif
+
+#ifndef PS2_TX_BUFFER_SHIFT
+#  define PS2_TX_BUFFER_SHIFT 5
+#endif
+
+
 typedef enum { PS2_MODE_DEVICE = 1, PS2_MODE_HOST = 2 } ps2mode_t;
 
 #define PS2_KEY_UP            0xf0
