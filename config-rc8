@@ -39,15 +39,12 @@ CONFIG_MCU_FREQ=8000000
 # Add a bootloader signature
 CONFIG_BOOTLOADER=n
 
-# Value of the signature word
-#CONFIG_BOOT_DEVID=0x12345678
-
 # Initial Baud rate of the UART
 CONFIG_UART_BAUDRATE=9600
 
 # Select which hardware to compile for
 # Valid values:
-#   1 - v1 board
+#   1 - v2 board
 #   2 - v3 Board
 CONFIG_HARDWARE_VARIANT=1
 
