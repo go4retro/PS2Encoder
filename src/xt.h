@@ -23,9 +23,12 @@
 #ifndef XT_H
 #define XT_H
 
-//#define XT_ENABLE_HOST
-#define XT_ENABLE_DEVICE
-
+// if not defined elsewhere, define both here.
+#if defined XT_ENABLE_HOST || defined XT_ENABLE_DEVICE
+#else
+#  define XT_ENABLE_HOST
+#  define XT_ENABLE_DEVICE
+#endif
 
 #ifndef XT_BUFFER_SHIFT
 #define XT_BUFFER_SHIFT     5
