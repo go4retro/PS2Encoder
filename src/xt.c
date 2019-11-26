@@ -184,17 +184,14 @@ static inline __attribute__((always_inline)) void xt_host_clk_irq(void) {
 }
 
 static void xt_host_init(void) {
+  xt_set_clk();   // clock high is idle state
+  xt_set_data();  // data high is idle state
   xt_enable_clk_fall();
 }
 #endif
 
 #ifdef XT_ENABLE_DEVICE
 static void xt_write_bit(void) {
-  xt_state=XT_ST_PREP_BIT;
-  xt_set_clk();  // bring CLK hi
-  // technically, data should be set ~18uS after CLK goes low, but
-  // delaying it until CLK goes high does not hurt.
-  xt_enable_timer(XT_CLK_HIGH_BIT_TIME);
   // set DATA..
   switch (xt_byte & 1) {
     case 0:
@@ -205,7 +202,7 @@ static void xt_write_bit(void) {
       break;
   }
   // shift right.
-  xt_byte= xt_byte >> 1;
+  xt_byte = xt_byte >> 1;
   xt_bit_count++;
   // valid data now.
 }
@@ -216,19 +213,12 @@ static void xt_read_byte(void) {
   tail = ( tail + 1 ) & XT_BUFFER_MASK;      /* Store new index */
 }
 
-static void xt_device_holdoff(void) {
-  xt_enable_clk_rise();
-  xt_set_clk();  // bring CLK hi
-  xt_state = XT_ST_HOLDOFF;
-  xt_timer_count = 0;
-  xt_enable_timer(XT_TIMER_100US);
-}
-
 static void xt_trigger_send(void) {
   // set state
   xt_state = XT_ST_INIT;
   xt_disable_clk();
-  xt_clear_clk(); // clock in a low bit
+  xt_clear_data();  // initial "pre" start bit is 0.
+  xt_clear_clk();   // clock in a low bit
   xt_enable_timer(XT_TIMER_100US);
 }
 
@@ -248,7 +238,7 @@ static inline __attribute__((always_inline)) void xt_device_timer_irq(void) {
     case XT_ST_INIT:
       // this is supposed to happen 7.5uS after CLK goes low, but it's OK to delay it to here.
       xt_enable_timer(XT_CLK_HIGH_START_TIME);
-      xt_set_data();  // start bit
+      xt_set_data();  // real start bit
       xt_set_clk();   // bring CLK high
       xt_read_byte();
       xt_state = XT_ST_PREP_START;
@@ -259,7 +249,11 @@ static inline __attribute__((always_inline)) void xt_device_timer_irq(void) {
       xt_state = XT_ST_SEND_START;
       break;
     case XT_ST_SEND_START:
-      // CLK, timer, and state is set in function.
+      xt_state=XT_ST_PREP_BIT;
+      xt_set_clk();  // bring CLK hi
+      // technically, data should be set ~18uS after CLK goes low, but
+      // delaying it until CLK goes high does not hurt.
+      xt_enable_timer(XT_CLK_HIGH_BIT_TIME);
       xt_write_bit();
       break;
     case XT_ST_PREP_BIT:
@@ -273,7 +267,11 @@ static inline __attribute__((always_inline)) void xt_device_timer_irq(void) {
         // we are done
         // host will take CLK low until it reads the byte.
         // wait for CLK to go high
-        xt_device_holdoff(); // CLK is set high in this function.
+        xt_state = XT_ST_HOLDOFF;
+        xt_timer_count = 0;
+        xt_enable_timer(XT_TIMER_100US);
+        xt_enable_clk_rise();
+        xt_set_clk();  // bring CLK hi
       } else {
         // CLK, timer, and state is set in function.
         xt_write_bit();
@@ -288,6 +286,7 @@ static inline __attribute__((always_inline)) void xt_device_timer_irq(void) {
       // we timed out
       xt_timer_count++;
       if(xt_timer_count >= 6) {  // we have finished our interchar wait time.
+        xt_disable_clk();
         xt_device_check_data();
       }
       break;
@@ -311,7 +310,12 @@ static inline __attribute__((always_inline)) void xt_device_clk_irq(void) {
     case XT_ST_IDLE:
     case XT_ST_WAIT:
       // host is holding us off.  Might be trying to reset. Wait for CLK hi...
-      xt_device_holdoff();
+      xt_state = XT_ST_HOLDOFF;
+      xt_timer_count = 0;
+      xt_enable_timer(XT_TIMER_100US);
+      xt_enable_clk_rise();
+      xt_set_clk();  // bring CLK hi
+      xt_set_data(); // in case needed
       break;
     case XT_ST_HOLDOFF:
       if(xt_timer_count < 6) {
@@ -335,13 +339,9 @@ static inline __attribute__((always_inline)) void xt_device_clk_irq(void) {
 }
 
 static void xt_device_init(void) {
-  if(!xt_read_clk()) {
-    // Possible race condition here, if line goes high after the check and
-    // before we can set up the IRQ.
-    // TODO fix this somehow.
-    xt_device_holdoff();
-  } else
-    xt_enable_clk_fall(); // normal state of affairs.
+  xt_set_clk();   // clock high is idle state
+  xt_clear_data(); // data low is idle state
+  xt_enable_clk_fall(); // in case reset is needed
 }
 #endif
 
@@ -402,7 +402,5 @@ void xt_init(xtmode_t mode) {
   xt_clear_buffers();
 
   xt_state = XT_ST_IDLE;
-  xt_set_clk();   // clock high is idle state
-  xt_clear_data(); // data low is idle state
   XT_CALL(xt_device_init(),xt_host_init());
 }
