@@ -29,6 +29,9 @@
 #define PS2_ENABLE_HOST
 #define PS2_ENABLE_DEVICE
 
+#define XT_ENABLE_HOST
+#define XT_ENABLE_DEVICE
+
 #ifndef TRUE
 #define FALSE                 0
 #define TRUE                  (!FALSE)
@@ -39,11 +42,11 @@
 #define PS2_TX_BUFFER_SHIFT   5
 
 // log2 of the XT buffer size, i.e. 6 for 64, 7 for 128, 8 for 256 etc.
-#define XT_BUFFER_SHIFT     5
+#define XT_BUFFER_SHIFT       5
 
 #define UART0_ENABLE
 // log2 of the UART buffer size, i.e. 6 for 64, 7 for 128, 8 for 256 etc.
-#define UART0_TX_BUFFER_SHIFT  7
+#define UART0_TX_BUFFER_SHIFT 5
 
 #define UART0_BAUDRATE CONFIG_UART_BAUDRATE
 #define DYNAMIC_UART
@@ -109,24 +112,24 @@ static inline __attribute__((always_inline)) uint8_t mode_device(void) {
   return !(PIND & _BV(PD4));
 }
 
-#  define SW_RX_BUFFER_SHIFT  2
-#  define PORT_SW_OUT         PORTB
-#  define PORT_SW_IN          PINB
-#  define PORT_SW_DDR         DDRB
-#  define SW_A                (PB4)
-#  define SW_B                (PB5)
+//#  define SW_RX_BUFFER_SHIFT  2
+//#  define PORT_SW_OUT         PORTB
+//#  define PORT_SW_IN          PINB
+//#  define PORT_SW_DDR         DDRB
+//#  define SW_A                (PB4)
+//#  define SW_B                (PB5)
 // can't use with Xtal
 //#  define SW_C                (PB6)
 //#  define SW_D                (PB7)
 
-#  define MAT_RX_BUFFER_SHIFT 4
-#  define MAT_ROW_LO_DDR      DDRB
-#  define MAT_ROW_LO_OUT      PORTB
-#  define MAT_ROW_MASK        0x0f
-#  define MAT_COL_LO_DDR      DDRC
-#  define MAT_COL_LO_OUT      PORTC
-#  define MAT_COL_LO_IN       PINC
-#  define MAT_COL_MASK        0x0f
+//#  define MAT_RX_BUFFER_SHIFT 4
+//#  define MAT_ROW_LO_DDR      DDRB
+//#  define MAT_ROW_LO_OUT      PORTB
+//#  define MAT_ROW_MASK        0x0f
+//#  define MAT_COL_LO_DDR      DDRC
+//#  define MAT_COL_LO_OUT      PORTC
+//#  define MAT_COL_LO_IN       PINC
+//#  define MAT_COL_MASK        0x0f
 
 //static inline __attribute__((always_inline)) void timer_init (void) {
 //  TCCR0A |= _BV(WGM01);
@@ -135,14 +138,14 @@ static inline __attribute__((always_inline)) uint8_t mode_device(void) {
 //  TIMSK0 |= _BV(OCIE0A);
 //}
 
-static inline __attribute__((always_inline)) void timer_init (void) {
-  TCCR1B |= (_BV(WGM12) | _BV(CS12));
-  OCR1A = 65;
-  TIMSK1 |= _BV(OCIE1A);
-}
+//static inline __attribute__((always_inline)) void timer_init (void) {
+//  TCCR1B |= (_BV(WGM12) | _BV(CS12));
+//  OCR1A = 65;
+//  TIMSK1 |= _BV(OCIE1A);
+//}
 
 //#  define TIMER_vect          TIMER0_COMPA_vect
-#  define TIMER_vect          TIMER1_COMPA_vect
+//#  define TIMER_vect          TIMER1_COMPA_vect
 #endif
 
 #endif /*CONFIG_H*/

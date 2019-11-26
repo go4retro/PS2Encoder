@@ -25,9 +25,9 @@
 #include "config.h"
 #include "eeprom.h"
 #include "flags.h"
-#include "matrix.h"
+//#include "matrix.h"
 #include "ps2.h"
-#include "switches.h"
+//#include "switches.h"
 #include "uart.h"
 #include "xt.h"
 
@@ -339,6 +339,105 @@ static void ps2_to_ascii(uint8_t code) {
     send_raw(u);
   if((globalopts & OPT_CRLF) && u == 13 && !(meta & POLL_FLAG_CONTROL) )
     send_raw(10);
+}
+
+static void xt_to_ps2(uint8_t code) {
+  uint8_t keydown = (code & 0x80 ? FALSE : TRUE);
+  uint8_t key;
+  code = code & 0x7f;
+
+  if(!keydown)
+    ps2_putc(PS2_KEY_UP);
+  switch (code) {
+    case XT_KEY_F1:           key = PS2_KEY_F1;           break;
+    case XT_KEY_F2:           key = PS2_KEY_F2;           break;
+    case XT_KEY_F3:           key = PS2_KEY_F3;           break;
+    case XT_KEY_F4:           key = PS2_KEY_F4;           break;
+    case XT_KEY_F5:           key = PS2_KEY_F5;           break;
+    case XT_KEY_F6:           key = PS2_KEY_F6;           break;
+    case XT_KEY_F7:           key = PS2_KEY_F7;           break;
+    case XT_KEY_F8:           key = PS2_KEY_F8;           break;
+    case XT_KEY_F9:           key = PS2_KEY_F9;           break;
+    case XT_KEY_F10:          key = PS2_KEY_F10;          break;
+    case XT_KEY_F11:          key = PS2_KEY_F11;          break;
+    case XT_KEY_F12:          key = PS2_KEY_F12;          break;
+    case XT_KEY_TAB:          key = PS2_KEY_TAB;          break;
+    case XT_KEY_BACKQUOTE:    key = PS2_KEY_BACKQUOTE;    break;
+    case XT_KEY_Q:            key = PS2_KEY_Q;            break;
+    case XT_KEY_1:            key = PS2_KEY_1;            break;
+    case XT_KEY_Z:            key = PS2_KEY_Z;            break;
+    case XT_KEY_S:            key = PS2_KEY_S;            break;
+    case XT_KEY_A:            key = PS2_KEY_A;            break;
+    case XT_KEY_W:            key = PS2_KEY_W;            break;
+    case XT_KEY_2:            key = PS2_KEY_2;            break;
+    case XT_KEY_C:            key = PS2_KEY_C;            break;
+    case XT_KEY_X:            key = PS2_KEY_X;            break;
+    case XT_KEY_D:            key = PS2_KEY_D;            break;
+    case XT_KEY_E:            key = PS2_KEY_E;            break;
+    case XT_KEY_4:            key = PS2_KEY_4;            break;
+    case XT_KEY_3:            key = PS2_KEY_3;            break;
+    case XT_KEY_SPACE:        key = PS2_KEY_SPACE;        break;
+    case XT_KEY_V:            key = PS2_KEY_V;            break;
+    case XT_KEY_F:            key = PS2_KEY_F;            break;
+    case XT_KEY_T:            key = PS2_KEY_T;            break;
+    case XT_KEY_R:            key = PS2_KEY_R;            break;
+    case XT_KEY_5:            key = PS2_KEY_5;            break;
+    case XT_KEY_N:            key = PS2_KEY_N;            break;
+    case XT_KEY_B:            key = PS2_KEY_B;            break;
+    case XT_KEY_H:            key = PS2_KEY_H;            break;
+    case XT_KEY_G:            key = PS2_KEY_G;            break;
+    case XT_KEY_Y:            key = PS2_KEY_Y;            break;
+    case XT_KEY_6:            key = PS2_KEY_6;            break;
+    case XT_KEY_M:            key = PS2_KEY_M;            break;
+    case XT_KEY_J:            key = PS2_KEY_J;            break;
+    case XT_KEY_U:            key = PS2_KEY_U;            break;
+    case XT_KEY_7:            key = PS2_KEY_7;            break;
+    case XT_KEY_8:            key = PS2_KEY_8;            break;
+    case XT_KEY_COMMA:        key = PS2_KEY_COMMA;        break;
+    case XT_KEY_K:            key = PS2_KEY_K;            break;
+    case XT_KEY_I:            key = PS2_KEY_I;            break;
+    case XT_KEY_O:            key = PS2_KEY_O;            break;
+    case XT_KEY_0:            key = PS2_KEY_0;            break;
+    case XT_KEY_NUM_0:        key = PS2_KEY_NUM_0;        break;
+    case XT_KEY_9:            key = PS2_KEY_9;            break;
+    case XT_KEY_PERIOD:       key = PS2_KEY_PERIOD;       break;
+    case XT_KEY_NUM_PERIOD:   key = PS2_KEY_NUM_PERIOD;   break;
+    case XT_KEY_SLASH:        key = PS2_KEY_SLASH;        break;
+    case XT_KEY_L:            key = PS2_KEY_L;            break;
+    case XT_KEY_SEMICOLON:    key = PS2_KEY_SEMICOLON;    break;
+    case XT_KEY_P:            key = PS2_KEY_P;            break;
+    case XT_KEY_MINUS:        key = PS2_KEY_MINUS;        break;
+    case XT_KEY_APOSTROPHE:   key = PS2_KEY_APOSTROPHE;   break;
+    case XT_KEY_LBRACKET:     key = PS2_KEY_LBRACKET;     break;
+    case XT_KEY_EQUALS:       key = PS2_KEY_EQUALS;       break;
+    case XT_KEY_ENTER:        key = PS2_KEY_ENTER;        break;
+    case XT_KEY_RBRACKET:     key = PS2_KEY_RBRACKET;     break;
+    case XT_KEY_BACKSLASH:    key = PS2_KEY_BACKSLASH;    break;
+    case XT_KEY_BS:           key = PS2_KEY_BS;           break;
+    case XT_KEY_ESC:          key = PS2_KEY_ESC;          break;
+    case XT_KEY_CAPS_LOCK:    key = PS2_KEY_CAPS_LOCK;    break;
+    case XT_KEY_NUM_LOCK:     key = PS2_KEY_NUM_LOCK;     break;
+    case XT_KEY_SCROLL_LOCK:  key = PS2_KEY_SCROLL_LOCK;  break;
+    case XT_KEY_ALT:          key = PS2_KEY_ALT;          break;
+    case XT_KEY_LCTRL:        key = PS2_KEY_LCTRL;        break;
+    case XT_KEY_LSHIFT:       key = PS2_KEY_LSHIFT;       break;
+    case XT_KEY_RSHIFT:       key = PS2_KEY_RSHIFT;       break;
+    case XT_KEY_NUM_PLUS:     key = PS2_KEY_NUM_PLUS;     break;
+    case XT_KEY_NUM_MINUS:    key = PS2_KEY_NUM_MINUS;    break;
+    case XT_KEY_NUM_STAR:     key = PS2_KEY_NUM_STAR;     break;
+    case XT_KEY_INT1:         key = PS2_KEY_INT1;         break;
+    //case XT_KEY_INT2:         key = PS2_KEY_INT2;         break;
+    case XT_KEY_NUM_1:        key = PS2_KEY_NUM_1;        break;
+    case XT_KEY_NUM_2:        key = PS2_KEY_NUM_2;        break;
+    case XT_KEY_NUM_3:        key = PS2_KEY_NUM_3;        break;
+    case XT_KEY_NUM_4:        key = PS2_KEY_NUM_4;        break;
+    case XT_KEY_NUM_5:        key = PS2_KEY_NUM_5;        break;
+    case XT_KEY_NUM_6:        key = PS2_KEY_NUM_6;        break;
+    case XT_KEY_NUM_7:        key = PS2_KEY_NUM_7;        break;
+    case XT_KEY_NUM_8:        key = PS2_KEY_NUM_8;        break;
+    case XT_KEY_NUM_9:        key = PS2_KEY_NUM_9;        break;
+  }
+  ps2_putc(key);
 }
 
 static void ps2_to_xt(uint8_t code,uint8_t keydown) {
@@ -982,7 +1081,7 @@ static void parse_key(uint8_t key, uint8_t keydown) {
   ps2_to_xt(key,keydown);
 }
 
-static inline __attribute__((always_inline)) void poll_kb(void) {
+static inline __attribute__((always_inline)) void poll_ps2_kb(void) {
   uint8_t key;
   poll_state_t state = POLL_ST_IDLE;
 
@@ -1110,12 +1209,25 @@ static inline __attribute__((always_inline)) void poll_kb(void) {
   }
 }
 
-ISR(TIMER_vect) {
-  mat_scan();
-  //sw_scan();
+static inline __attribute__((always_inline)) void poll_xt_kb(void) {
+  uint8_t key;
+  //poll_state_t state = POLL_ST_IDLE;
+
+  for(;;) {
+    if(xt_data_available() != 0) {
+      // kb sent data...
+      key = xt_getc();
+      xt_to_ps2(key);
+    }
+  }
 }
 
-static inline __attribute__((always_inline)) void scan_inputs(void) {
+//ISR(TIMER_vect) {
+  //mat_scan();
+  //sw_scan();
+//}
+
+/*static inline __attribute__((always_inline)) void scan_inputs(void) {
   uint8_t data;
 
   for(;;) {
@@ -1146,7 +1258,7 @@ static inline __attribute__((always_inline)) void scan_inputs(void) {
       }
     }
   }
-}
+}*/
 
 void main(void) {
   mode_init();
@@ -1160,15 +1272,17 @@ void main(void) {
     ps2_init(PS2_MODE_DEVICE);
     xt_init(XT_MODE_HOST);
 
-    mat_init();
-    sw_init(_BV(SW_A) | _BV(SW_B));
+    //mat_init();
+    //sw_init(_BV(SW_A) | _BV(SW_B));
 
-    timer_init();
+    //timer_init();
 
     sei();
     uart_putc('d');
 
-    scan_inputs();
+    poll_xt_kb();
+
+    //scan_inputs();
   } else {
     data_init();
     reset_init();
@@ -1190,7 +1304,7 @@ void main(void) {
     uart_putc('h');
     ps2_putc(PS2_CMD_RESET);
 
-    poll_kb();
+    poll_ps2_kb();
   }
   while(TRUE);
 }
