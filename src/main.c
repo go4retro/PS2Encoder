@@ -822,13 +822,25 @@ static void set_options(uint8_t key) {
       send_raw('c');
       send_raw('l');
       break;
+    case PS2_KEY_1:       // 1 stop bit
+      uart_stop = STOP_0;
+      send_raw('s');
+      send_raw('1');
+      break;
+    case PS2_KEY_2:       // 2 stop bits
+      uart_length = STOP_1;
+      send_raw('s');
+      send_raw('2');
+      break;
     case PS2_KEY_7:       // 7 bit length
       uart_length = LENGTH_7;
-      send_raw('&');
+      send_raw('l');
+      send_raw('7');
       break;
     case PS2_KEY_8:       // 8 bit length
       uart_length = LENGTH_8;
-      send_raw('*');
+      send_raw('l');
+      send_raw('8');
       break;
     case PS2_KEY_P:       // Increase strobe pulse length
       if(pulselen < 0xff)
@@ -838,7 +850,7 @@ static void set_options(uint8_t key) {
     case PS2_KEY_I:       // Increase reset pulse length
       if(resetlen < 0xff)
         resetlen++;
-      send_option('P',resetlen < 0xff);
+      send_option('I',resetlen < 0xff);
       break;
     case PS2_KEY_T:       // Increase send delay
       if(holdoff < 0xff)
@@ -960,7 +972,7 @@ static void set_options(uint8_t key) {
       break;
     case PS2_KEY_O:   // Odd Parity
       uart_parity = PARITY_ODD;
-      send_raw('O');
+      send_raw('o');
       break;
     case PS2_KEY_E:   // Even Parity
       uart_parity = PARITY_EVEN;
