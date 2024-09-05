@@ -165,6 +165,27 @@ typedef enum { XT_MODE_DEVICE = 1, XT_MODE_HOST = 2 } xtmode_t;
 
 #define XT_BUFFER_MASK   (_BV(XT_BUFFER_SHIFT) - 1)
 
+#define XT_CLK_HIGH_START_TIME  (80 - 8)
+#define XT_CLK_LOW_START_TIME   (36 - 5)
+#define XT_CLK_HIGH_BIT_TIME    (80 - 8)
+#define XT_CLK_LOW_BIT_TIME     (36 - 5)
+#define XT_TIMER_100US          (100 - 8)
+
+typedef enum  {XT_ST_IDLE
+              ,XT_ST_RESET
+              ,XT_ST_INIT
+              ,XT_ST_PREP_START
+              ,XT_ST_SEND_START
+              ,XT_ST_PREP_BIT
+              ,XT_ST_SEND_BIT
+              ,XT_ST_HOLDOFF
+              ,XT_ST_WAIT
+              ,XT_ST_GET_START
+              ,XT_ST_GET_BIT
+              } xtstate_t;
+
+#ifdef CONFIG_XT_SUPPORT
+
 /* PS2 Clock INT */
 #if defined __AVR_ATmega8__ ||  defined __AVR_ATmega16__ || defined __AVR_ATmega32__ || defined __AVR_ATmega162__
 //#  define XT_CLK_INTDR        MCUCR     // INT Direction Register
@@ -257,25 +278,6 @@ typedef enum { XT_MODE_DEVICE = 1, XT_MODE_HOST = 2 } xtmode_t;
 #  error Unknown chip!
 #endif
 
-#define XT_CLK_HIGH_START_TIME  (80 - 8)
-#define XT_CLK_LOW_START_TIME   (36 - 5)
-#define XT_CLK_HIGH_BIT_TIME    (80 - 8)
-#define XT_CLK_LOW_BIT_TIME     (36 - 5)
-#define XT_TIMER_100US          (100 - 8)
-
-typedef enum  {XT_ST_IDLE
-              ,XT_ST_RESET
-              ,XT_ST_INIT
-              ,XT_ST_PREP_START
-              ,XT_ST_SEND_START
-              ,XT_ST_PREP_BIT
-              ,XT_ST_SEND_BIT
-              ,XT_ST_HOLDOFF
-              ,XT_ST_WAIT
-              ,XT_ST_GET_START
-              ,XT_ST_GET_BIT
-              } xtstate_t;
-
 static inline __attribute__((always_inline)) void xt_init_timer(void) {
   // set prescaler to System Clock/8
   XT_TCCR1 |= XT_TCCR1_DATA;
@@ -336,6 +338,14 @@ void xt_putc(uint8_t data);
 #endif
 uint8_t xt_data_available(void);
 void xt_clear_buffers(void);
+
+#else
+#  define xt_init(mode)           do {} while(0)
+#  define xt_getc(void)           0
+#  define xt_putc(data)           do {} while(0)
+#  define xt_data_available(void) 0
+#  define xt_clear_buffers(void)  do {} while(0)
+#endif
 
 #endif
 

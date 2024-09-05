@@ -59,6 +59,7 @@
 		<pathentry kind="out" path=""/>
 		<pathentry kind="con" path="org.eclipse.cdt.make.core.DISCOVERED_SCANNER_INFO"/>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets">
 		<buildTargets>
 			<target name="all" path="" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
@@ -77,7 +78,30 @@
 				<useDefaultCommand>false</useDefaultCommand>
 				<runAllBuilders>true</runAllBuilders>
 			</target>
+			<target name="all (rc8)" path="" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
+				<buildCommand>make</buildCommand>
+				<buildArguments>CONFIG=config-rc8</buildArguments>
+				<buildTarget>all</buildTarget>
+				<stopOnError>false</stopOnError>
+				<useDefaultCommand>false</useDefaultCommand>
+				<runAllBuilders>true</runAllBuilders>
+			</target>
+			<target name="clean" path="" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
+				<buildCommand>make</buildCommand>
+				<buildArguments>CONFIG=config-xt168</buildArguments>
+				<buildTarget>clean</buildTarget>
+				<stopOnError>false</stopOnError>
+				<useDefaultCommand>false</useDefaultCommand>
+				<runAllBuilders>true</runAllBuilders>
+			</target>
+			<target name="clean (rc8)" path="" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
+				<buildCommand>make</buildCommand>
+				<buildArguments>CONFIG=config-rc8</buildArguments>
+				<buildTarget>clean</buildTarget>
+				<stopOnError>false</stopOnError>
+				<useDefaultCommand>false</useDefaultCommand>
+				<runAllBuilders>true</runAllBuilders>
+			</target>
 		</buildTargets>
 	</storageModule>
-	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 </cproject>

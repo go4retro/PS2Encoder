@@ -109,7 +109,11 @@ static inline __attribute__((always_inline)) uint8_t mode_config(void) {
 
 // this must return non-zero for device mode
 static inline __attribute__((always_inline)) uint8_t mode_device(void) {
+#ifdef CONFIG_XT_SUPPORT
   return !(PIND & _BV(PD4));
+#else
+  return FALSE;
+#endif
 }
 
 //#  define SW_RX_BUFFER_SHIFT  2

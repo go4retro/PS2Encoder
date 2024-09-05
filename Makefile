@@ -163,7 +163,12 @@ FORMAT = ihex
 TARGET = PS2Encoder
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC = uart.c main.c ps2.c ps2_kb.c eeprom.c xt.c
+SRC = uart.c main.c ps2.c ps2_kb.c eeprom.c
+
+ifeq ($(CONFIG_XT_SUPPORT),y)
+  SRC += xt.c
+endif
+
 
 # Sample mechanism to add files to SRC line
 #ifeq ($(CONFIG_VARIABLE),4)

@@ -25,7 +25,7 @@
 # This system based on sd2iec Makefile by Ingo Korb
 
 # MCU to compile for
-CONFIG_MCU=atmega88
+CONFIG_MCU=atmega8
 
 # Use the -relax parameter when linking?
 # Passing -O9 and -relax to the linker saves ~650 bytes of flash,
@@ -56,4 +56,4 @@ CONFIG_EFUSE=0x01
 CONFIG_HFUSE=0xdc
 CONFIG_LFUSE=0xff
 
-CONFIG_XT_SUPPORT=y
+CONFIG_XT_SUPPORT=n
