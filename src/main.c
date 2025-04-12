@@ -828,7 +828,7 @@ static void set_options(uint8_t key) {
       send_raw('1');
       break;
     case PS2_KEY_2:       // 2 stop bits
-      uart_length = STOP_1;
+      uart_stop = STOP_1;
       send_raw('s');
       send_raw('2');
       break;
